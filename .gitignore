@@ -5,11 +5,8 @@ data/
 # Modèles sauvegardés
 *.pth
 
-# Scripts de rebuild (utilitaires temporaires)
-rebuild_*.py
-fix_*.py
-create_*.py
-reorganize_*.py
+# Scripts utilitaires temporaires
+*.py
 
 # Python
 __pycache__/
@@ -22,9 +19,12 @@ Thumbs.db
 
 # IDE
 .vscode/
+.claude/
 
 # Captures d'écran
 *.png
 
-# Ancien notebook
+# Brouillons et anciens notebooks
 poubelle/
+DL CK.ipynb
+Lab_1_practice.ipynb
