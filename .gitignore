@@ -5,9 +5,6 @@ data/
 # Modèles sauvegardés
 *.pth
 
-# Scripts utilitaires temporaires
-*.py
-
 # Python
 __pycache__/
 *.pyc
@@ -21,13 +18,12 @@ Thumbs.db
 .vscode/
 .claude/
 
-# Captures d'écran
-*.png
+# Labs du prof
+Lab_*.ipynb
 
-# Brouillons et anciens notebooks
+# Brouillons
 poubelle/
-DL CK.ipynb
-Lab_1_practice.ipynb
+docs/
 
-# Doc consignes
+# Consignes
 deep_learning_project.pdf
