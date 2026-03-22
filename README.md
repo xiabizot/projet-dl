@@ -44,10 +44,6 @@ Le dataset est telecharge automatiquement a l'execution des notebooks.
 
 5. **Le CNN et le ResNet utilisent des strategies visuelles complementaires** (analyse Grad-CAM). Un ensemble des deux pourrait potentiellement surpasser chacun individuellement.
 
-## Equipe
-
-- **Xia Bizot** — NB1 (EDA), NB2 (MLP), NB3 (CNN), NB5 (ViT), NB7 (Comparaison)
-- **Camille** — NB4 (ResNet-18), NB6 (Grad-CAM)
 
 ## Prerequis
 
