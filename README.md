@@ -1,4 +1,4 @@
-# Projet Deep Learning — Classification automatisee de tissus cancereux colorectaux
+# Projet Deep Learning — Classification de tissus cancereux colorectaux
 
 **Diplome Universitaire Sorbonne Data Analytics — Promotion 007 — Mars 2026**
 
