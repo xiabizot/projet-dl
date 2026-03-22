@@ -18,7 +18,6 @@ Thumbs.db
 
 # IDE
 .vscode/
-.claude/
 
 # Lab notebooks
 Lab_*.ipynb
