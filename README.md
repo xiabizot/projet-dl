@@ -2,6 +2,10 @@
 
 **Diplome Universitaire Sorbonne Data Analytics - Promotion 007 - Mars 2026**
 
+
+https://github.com/xiabizot/projet-dl
+
+
 ## Contexte
 
 Le cancer colorectal est le troisieme cancer le plus frequent dans le monde. L'analyse des biopsies reste le standard diagnostique, mais elle est chronophage et sujette a la variabilite inter-observateurs. Le deep learning peut aider a trier les lames plus vite, a reperer les cas suspects en priorite, et a rendre les criteres de classification plus homogenes à grande échelle.
