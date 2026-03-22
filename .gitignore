@@ -1,5 +1,6 @@
 # Datasets (too large for GitHub - auto-downloaded by notebooks)
 *.npz
+*.zip
 data/
 
 # Saved models and pickles
