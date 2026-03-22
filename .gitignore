@@ -1,9 +1,10 @@
-# Datasets (trop lourds pour GitHub)
+# Datasets (too large for GitHub - auto-downloaded by notebooks)
 *.npz
 data/
 
-# Modèles sauvegardés
+# Saved models and pickles
 *.pth
+*.pkl
 
 # Python
 __pycache__/
@@ -18,12 +19,42 @@ Thumbs.db
 .vscode/
 .claude/
 
-# Labs du prof
+# Lab notebooks
 Lab_*.ipynb
 
-# Brouillons
+# Drafts and archives
 poubelle/
 docs/
+DL_CK.ipynb
 
-# Consignes
+# Project instructions
 deep_learning_project.pdf
+
+# Temporary scripts
+fix_*.py
+rebuild_*.py
+create_*.py
+add_*.py
+reorganize_*.py
+
+# Backup/duplicate notebooks
+*_OLD.ipynb
+*_BACKUP.ipynb
+*_LAST.ipynb
+*_CK.ipynb
+*02.ipynb
+*03.ipynb
+
+# Word files
+*.docx
+~$*.docx
+
+# Presentations
+*.pptx
+
+# Screenshots
+Capture*.png
+capture*.png
+
+# Translation scripts
+translate_*.py
