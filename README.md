@@ -8,7 +8,7 @@ https://github.com/xiabizot/projet-dl
 
 ## Contexte
 
-Le cancer colorectal est le troisieme cancer le plus frequent dans le monde. L'analyse des biopsies reste le standard diagnostique, mais elle est chronophage et sujette a la variabilite inter-observateurs. Le deep learning peut aider a trier les lames plus vite, a reperer les cas suspects en priorite, et a rendre les criteres de classification plus homogenes à grande échelle.
+Le cancer est un problème de santé publique. Le cancer colorectal est le troisieme cancer le plus frequent dans le monde. L'analyse des biopsies reste le standard diagnostique, mais elle est chronophage et sujette a la variabilite inter-observateurs. Le deep learning accompagne les domaines de la santé dans ses enjeux technologiques et peut par exemple aider a trier les lames plus vite, a reperer les cas suspects en priorite, et a rendre les criteres de classification plus homogenes à grande échelle.
 
 Ce projet explore si des modeles de deep learning peuvent distinguer de manière fiable et efficace 9 types de tissus a partir de lames d'histologie colorectale en basse resolution (28x28), et evalue les compromis entre complexite du modele, performance diagnostique et deployabilite clinique.
 
