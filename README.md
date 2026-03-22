@@ -1,58 +1,58 @@
-# Deep Learning Project — Automated Classification of Colorectal Cancer Tissues
+# Projet Deep Learning — Classification automatisee de tissus cancereux colorectaux
 
 **Diplome Universitaire Sorbonne Data Analytics — Promotion 007 — Mars 2026**
 
-## Context
+## Contexte
 
-Colorectal cancer is the third most common cancer worldwide. Histopathological analysis of tissue biopsies remains the gold standard for diagnosis, but it is time-consuming and subject to inter-observer variability. Automating the classification of tissue types from H&E-stained histology images could assist pathologists in screening large volumes of slides, prioritizing suspicious cases, and reducing diagnostic delays.
+Le cancer colorectal est le troisieme cancer le plus frequent dans le monde. L'analyse histopathologique des biopsies tissulaires reste le standard diagnostique, mais elle est chronophage et sujette a la variabilite inter-observateurs. Automatiser la classification des types tissulaires a partir d'images d'histologie colorees H&E pourrait assister les pathologistes dans le tri de grands volumes de lames, la priorisation des cas suspects et la reduction des delais diagnostiques.
 
-This project explores whether deep learning models can reliably distinguish 9 tissue types from low-resolution (28x28) colorectal histology patches, and evaluates the trade-offs between model complexity, diagnostic performance, and clinical deployability.
+Ce projet explore si des modeles de deep learning peuvent distinguer de maniere fiable 9 types tissulaires a partir de patches d'histologie colorectale en basse resolution (28x28), et evalue les compromis entre complexite du modele, performance diagnostique et deployabilite clinique.
 
 ## Dataset
 
-**PathMNIST** (MedMNIST benchmark) — 107,180 colorectal cancer histopathology patches (28x28, RGB), 9 tissue types (adipose, background, debris, lymphocytes, mucus, smooth muscle, normal colon mucosa, cancer-associated stroma, colorectal adenocarcinoma epithelium).
+**PathMNIST** (benchmark MedMNIST) — 107 180 patches d'histopathologie de cancer colorectal (28x28, RGB), 9 types tissulaires (adipose, background, debris, lymphocytes, mucus, muscle lisse, muqueuse colique normale, stroma associe au cancer, epithelium d'adenocarcinome colorectal).
 
-- Train: 89,996 images (Hospital A — NCT-CRC-HE-100K)
-- Val: 10,004 images (Hospital A)
-- Test: 7,180 images (Hospital B — CRC-VAL-HE-7K)
+- Train : 89 996 images (Hopital A — NCT-CRC-HE-100K)
+- Val : 10 004 images (Hopital A)
+- Test : 7 180 images (Hopital B — CRC-VAL-HE-7K)
 
-The train/test split comes from two different hospitals, introducing a **domain shift** that is the central challenge of this project.
+Le split train/test provient de deux hopitaux differents, introduisant un **domain shift** qui est le defi central de ce projet.
 
-The dataset is automatically downloaded when running the notebooks.
+Le dataset est telecharge automatiquement a l'execution des notebooks.
 
 ## Notebooks
 
-| Notebook | Content | Test accuracy | Recall cancer |
+| Notebook | Contenu | Test accuracy | Recall cancer |
 |----------|---------|--------------|---------------|
-| NB1 — EDA | Data exploration, domain shift analysis, Q1.1 & Q1.2 | — | — |
-| NB2 — MLP | Dense network baseline (2352-512-256-128-9) | 68.02% | 0.7745 |
-| NB3 — CNN | CNN from scratch + augmentation iterations | 91.78% | 0.9570 |
-| NB4 — ResNet-18 | Transfer learning: frozen (87.14%) vs fine-tuning | 91.77% | 0.9659 |
+| NB1 — EDA | Exploration des donnees, analyse du domain shift, Q1.1 & Q1.2 | — | — |
+| NB2 — MLP | Reseau dense baseline (2352-512-256-128-9) | 68.02% | 0.7745 |
+| NB3 — CNN | CNN from scratch + iterations d'augmentation | 91.78% | 0.9570 |
+| NB4 — ResNet-18 | Transfer learning : frozen (87.14%) vs fine-tuning | 91.77% | 0.9659 |
 | NB5 — ViT | Vision Transformer from scratch, patch 7x7 | 81.98% | 0.8873 |
-| NB6 — Grad-CAM | Interpretability: what the models look at | — | — |
-| NB7 — Comparison | Final comparison, metrics analysis, clinical recommendations | — | — |
+| NB6 — Grad-CAM | Interpretabilite : ou regardent les modeles | — | — |
+| NB7 — Comparaison | Comparaison finale, analyse des metriques, recommandations cliniques | — | — |
 
-## Key findings
+## Resultats cles
 
-1. **CNN from scratch (91.78%) matches ResNet fine-tuning (91.77%) with 25x fewer parameters.** The key is ColorJitter augmentation, which simulates the H&E staining variations between hospitals and directly addresses the domain shift.
+1. **Le CNN from scratch (91.78%) egale le ResNet fine-tuning (91.77%) avec 25 fois moins de parametres.** La cle est l'augmentation ColorJitter, qui simule les variations de coloration H&E entre hopitaux et adresse directement le domain shift.
 
-2. **Accuracy alone is misleading for clinical deployment.** The ResNet FT dominates on cancer detection (F1 = 0.9632 vs 0.9414 for CNN, precision 0.9605 vs 0.9262). In oncology, missing a cancer (false negative) is far more dangerous than a false alarm.
+2. **L'accuracy seule est trompeuse pour le deploiement clinique.** Le ResNet FT domine sur la detection du cancer (F1 = 0.9632 vs 0.9414 pour le CNN, precision 0.9605 vs 0.9262). En oncologie, manquer un cancer (faux negatif) est bien plus grave qu'une fausse alerte.
 
-3. **Stroma is universally difficult** (recall 0.39-0.53 across all models). This is a physical limitation of the 28x28 resolution — connective tissue textures are indistinguishable at this scale.
+3. **Le stroma est universellement difficile** (recall 0.39-0.53 pour tous les modeles). C'est une limite physique de la resolution 28x28 — les textures des tissus conjonctifs sont indistinguables a cette echelle.
 
-4. **ViT without positional embeddings outperforms ViT with them** (83.40% vs 81.98%). In histology, tissue identity is in the texture, not the location — a finding that contrasts sharply with NLP where position is essential.
+4. **Le ViT sans positional embeddings surpasse le ViT avec** (83.40% vs 81.98%). En histologie, l'identite du tissu est dans la texture, pas dans la localisation — un resultat qui contraste fortement avec le NLP ou la position est essentielle.
 
-5. **CNN and ResNet use complementary visual strategies** (Grad-CAM analysis). An ensemble could potentially surpass both.
+5. **Le CNN et le ResNet utilisent des strategies visuelles complementaires** (analyse Grad-CAM). Un ensemble des deux pourrait potentiellement surpasser chacun individuellement.
 
-## Team
+## Equipe
 
-- **Xia Bizot** — NB1 (EDA), NB2 (MLP), NB3 (CNN), NB5 (ViT), NB7 (Comparison)
+- **Xia Bizot** — NB1 (EDA), NB2 (MLP), NB3 (CNN), NB5 (ViT), NB7 (Comparaison)
 - **Camille** — NB4 (ResNet-18), NB6 (Grad-CAM)
 
-## Prerequisites
+## Prerequis
 
 - Python 3.12
-- PyTorch >= 2.0 (CUDA recommended)
+- PyTorch >= 2.0 (CUDA recommande)
 - MedMNIST >= 3.0
 
 ## Installation
@@ -61,14 +61,14 @@ The dataset is automatically downloaded when running the notebooks.
 pip install -r requirements.txt
 ```
 
-## Run order
+## Ordre d'execution
 
-Notebooks must be run in order (NB1 to NB7). Each notebook saves its models and predictions for downstream notebooks.
+Les notebooks doivent etre executes dans l'ordre (NB1 a NB7). Chaque notebook sauvegarde ses modeles et predictions pour les notebooks suivants.
 
 ```
-NB1 (EDA) -> NB2 (MLP) -> NB3 (CNN) -> NB4 (ResNet) -> NB5 (ViT) -> NB6 (Grad-CAM) -> NB7 (Comparison)
+NB1 (EDA) -> NB2 (MLP) -> NB3 (CNN) -> NB4 (ResNet) -> NB5 (ViT) -> NB6 (Grad-CAM) -> NB7 (Comparaison)
 ```
 
-## Reproducibility
+## Reproductibilite
 
-All notebooks use SEED=42, torch.backends.cudnn.deterministic=True, and save their best checkpoints and predictions as pickle files. Normalization constants are computed in NB1 and reused across all subsequent notebooks.
+Tous les notebooks utilisent SEED=42, torch.backends.cudnn.deterministic=True, et sauvegardent leurs meilleurs checkpoints et predictions en fichiers pickle. Les constantes de normalisation sont calculees dans NB1 et reutilisees dans tous les notebooks suivants.
