@@ -198,7 +198,7 @@ def init_models():
 @st.cache_resource
 def load_test_dataset():
     from medmnist import PathMNIST as PathMNISTDS
-    return PathMNISTDS(split='test', download=False, root=str(DATA_DIR))
+    return PathMNISTDS(split='test', download=True, root=str(DATA_DIR))
 
 @st.cache_data
 def get_class_indices(_test_ds):
