@@ -189,6 +189,22 @@ def _to_pil(image):
 # =============================================
 # PREDICTION V1 — CNN seul
 # =============================================
+def mc_dropout_predict(model, tensor, n_forward=20):
+    """
+    Monte Carlo Dropout: run n_forward passes with dropout enabled.
+    Returns array of shape (n_forward, n_classes) with probability distributions.
+    """
+    model.train()  # Enable dropout
+    mc_probas = []
+    with torch.no_grad():
+        for _ in range(n_forward):
+            logits = model(tensor)
+            probas = F.softmax(logits, dim=1).cpu().numpy()[0]
+            mc_probas.append(probas)
+    model.eval()  # Back to eval mode
+    return np.array(mc_probas)
+
+
 def predict_v1(image):
     """
     Prediction CNN v1 seul.
@@ -215,6 +231,12 @@ def predict_v1(image):
         key=lambda x: x[1], reverse=True
     )
 
+    # Monte Carlo Dropout — uncertainty estimation
+    mc_probas = mc_dropout_predict(cnn, tensor, n_forward=20)
+    mc_std = float(mc_probas.std(axis=0)[pred_idx])
+    mc_mean = mc_probas.mean(axis=0)
+    uncertainty = float(mc_probas.std(axis=0).mean())
+
     return {
         'pred_class': CLASSES[pred_idx],
         'pred_idx': pred_idx,
@@ -222,6 +244,8 @@ def predict_v1(image):
         'probas': probas,
         'top_k': top_k,
         'model': 'CNN v1',
+        'uncertainty': uncertainty,
+        'mc_std': mc_std,
     }
 
 
@@ -268,6 +292,10 @@ def predict_v2(image, w_cnn=0.5, w_resnet=0.5):
         key=lambda x: x[1], reverse=True
     )
 
+    # Monte Carlo Dropout on CNN
+    mc_probas = mc_dropout_predict(cnn, tensor_cnn, n_forward=20)
+    uncertainty = float(mc_probas.std(axis=0).mean())
+
     return {
         'pred_class': CLASSES[pred_idx],
         'pred_idx': pred_idx,
@@ -278,6 +306,7 @@ def predict_v2(image, w_cnn=0.5, w_resnet=0.5):
         'top_k': top_k,
         'model': 'Ensemble (CNN v1 + ResNet FT)',
         'weights': {'cnn': w_cnn, 'resnet': w_resnet},
+        'uncertainty': uncertainty,
     }
 
 

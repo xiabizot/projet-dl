@@ -289,15 +289,15 @@ with tab1:
 
     # Microbe icons mapping (9 classes)
     MICROBE_FILES = [
-        'assets/Nouveau projet (7).png',   # adipose
-        'assets/Nouveau projet (9).png',   # background
-        'assets/Nouveau projet (11).png',  # debris
-        'assets/Nouveau projet (5).png',   # lymphocytes
-        'assets/Nouveau projet (6).png',   # mucus
-        'assets/Nouveau projet (12).png',  # smooth muscle
-        'assets/Nouveau projet (3).png',   # normal mucosa
-        'assets/Nouveau projet (4).png',   # stroma
-        'assets/Nouveau projet (2).png',   # cancer epithelium
+        'assets/adipose.png',
+        'assets/background.png',
+        'assets/debris.png',
+        'assets/lymphocytes.png',
+        'assets/mucus.png',
+        'assets/smooth_muscle.png',
+        'assets/normal_mucosa.png',
+        'assets/stroma.png',
+        'assets/cancer.png',
     ]
 
     # Load microbe images and compose with label text below
@@ -461,6 +461,24 @@ with tab1:
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+            # Monte Carlo Dropout — uncertainty
+            uncertainty = result.get('uncertainty', None)
+            if uncertainty is not None:
+                unc_pct = uncertainty * 100
+                unc_color = P['vert'] if unc_pct < 3 else (P['jaune'] if unc_pct < 8 else P['rose'])
+                unc_label = "Prediction stable" if unc_pct < 3 else ("Legere hesitation" if unc_pct < 8 else "Forte incertitude — verification recommandee")
+                st.markdown(f"""
+                <div style="max-width:320px; margin:0 auto 10px auto;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.68rem; color:{P['dim']};">
+                        <span>Incertitude (MC Dropout)</span><span>{unc_pct:.1f}%</span>
+                    </div>
+                    <div style="background:{P['card']}; border-radius:3px; height:6px; border:1px solid {P['border']};">
+                        <div style="width:{min(unc_pct * 5, 100):.0f}%; height:100%; border-radius:3px; background:{unc_color};"></div>
+                    </div>
+                    <div style="text-align:center; font-size:0.62rem; color:{unc_color}; margin-top:2px;">{unc_label}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
             # Metrics for predicted class
             metrics = get_metrics()
@@ -857,6 +875,44 @@ with tab5:
             Le cancer epithelium forme un cluster distinct mais avec une frontiere floue vers la mucosa normale.
         </div>
         """, unsafe_allow_html=True)
+
+        # UMAP
+        st.markdown("---")
+        st.markdown(f'<div style="text-align:center; font-size:0.78rem; font-weight:600; color:{P["rose"]}; margin:10px 0 6px 0;">Carte UMAP</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align:center; font-size:0.65rem; color:{P["dim"]}; margin-bottom:8px;">UMAP preserve mieux la structure globale que t-SNE</div>', unsafe_allow_html=True)
+
+        @st.cache_data
+        def compute_umap():
+            try:
+                from umap import UMAP
+                emb_path = Path(DATA_DIR) / 'embeddings' / 'cnn_test_embeddings.npy'
+                if not emb_path.exists():
+                    return None
+                embeddings_u = np.load(emb_path)
+                reducer = UMAP(n_components=2, n_neighbors=15, min_dist=0.1, random_state=42)
+                return reducer.fit_transform(embeddings_u)
+            except ImportError:
+                return None
+
+        umap_coords = compute_umap()
+        if umap_coords is not None:
+            fig_u, ax_u = plt.subplots(figsize=(10, 8))
+            fig_u.patch.set_facecolor('#ffffff')
+            ax_u.set_facecolor('#f8f9fc')
+            for c in range(N_CLASSES):
+                mask = labels_tsne == c
+                ax_u.scatter(umap_coords[mask, 0], umap_coords[mask, 1], s=6, alpha=0.5,
+                          c=colors_map[c], label=CLASSES[c])
+            ax_u.legend(fontsize=8, loc='best', framealpha=0.8, markerscale=3)
+            ax_u.set_xticks([]); ax_u.set_yticks([])
+            ax_u.set_title('UMAP CNN v1 embeddings (128D → 2D)', fontsize=11, color='#1a1a2e')
+            for spine in ax_u.spines.values():
+                spine.set_color('#e0e4ec')
+            plt.tight_layout()
+            st.pyplot(fig_u)
+            plt.close()
+        else:
+            st.caption("UMAP non disponible (pip install umap-learn)")
 
         st.markdown("---")
 
