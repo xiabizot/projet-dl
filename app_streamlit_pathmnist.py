@@ -551,15 +551,15 @@ with tab1:
                         except Exception as e:
                             st.session_state['last_explanation'] = f"Erreur : {e}"
             with c3:
-                if st.button("Cell.IA explique pour les enfants", use_container_width=True):
+                if st.button("Cell.IA version junior", use_container_width=True):
                     with st.spinner("Cell.IA explique simplement..."):
                         try:
                             kid_prompt = (
-                                f"Tu es Cell.IA, un assistant medical qui parle a un enfant de 8 ans hospitalise. "
-                                f"Le modele a classifie cette image de tissu comme '{CLASSES[pred_cls]}' avec {conf:.0%} de confiance. "
-                                f"Explique en 2-3 phrases tres simples ce que le modele a vu, comme si tu parlais a un enfant curieux. "
-                                f"Utilise des comparaisons avec des choses que l'enfant connait (couleurs, formes, textures du quotidien). "
-                                f"Sois rassurant et bienveillant. Pas de jargon medical."
+                                f"Tu es Cell.IA, un assistant qui explique les resultats d'un microscope intelligent a un ado de 10-14 ans. "
+                                f"Le modele a analyse une image de tissu colorectal et a identifie : '{CLASSES[pred_cls]}' avec {conf:.0%} de confiance. "
+                                f"Explique en 3-4 phrases claires ce que c'est, ce que l'IA a regarde dans l'image, et pourquoi c'est utile pour les medecins. "
+                                f"Utilise un vocabulaire accessible mais pas bebe. Tu peux utiliser des analogies simples. "
+                                f"Ne minimise pas le sujet, sois honnete mais pas alarmiste."
                             )
                             explanation = explain_with_claude(result=result, mode='V1', image=img_arr, prompt_override=kid_prompt)
                             st.session_state['last_explanation'] = explanation
