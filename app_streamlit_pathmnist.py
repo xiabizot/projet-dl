@@ -531,7 +531,8 @@ with tab1:
 
             if 'last_explanation' in st.session_state:
                 st.markdown(f"""<div style="background:{P['card']}; border:1px solid {P['border']}; border-radius:6px;
-                    padding:16px; margin:10px 0; font-size:0.78rem; color:{P['text']}; line-height:1.6;">""", unsafe_allow_html=True)
+                    padding:16px; margin:10px 0; font-size:0.78rem; color:{P['text']}; line-height:1.6;">
+                    <div style="font-size:0.82rem; font-weight:700; color:{P['rose']}; margin-bottom:8px;">Cell.IA :</div>""", unsafe_allow_html=True)
                 st.markdown(st.session_state['last_explanation'])
                 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -658,7 +659,8 @@ with tab2:
 
         if 'gc_explanation' in st.session_state:
             st.markdown(f"""<div style="background:{P['card']}; border:1px solid {P['border']}; border-radius:6px;
-                padding:16px; margin:10px 0; font-size:0.78rem; color:{P['text']}; line-height:1.6;">""", unsafe_allow_html=True)
+                padding:16px; margin:10px 0; font-size:0.78rem; color:{P['text']}; line-height:1.6;">
+                <div style="font-size:0.82rem; font-weight:700; color:{P['rose']}; margin-bottom:8px;">Cell.IA :</div>""", unsafe_allow_html=True)
             st.markdown(st.session_state['gc_explanation'])
             st.markdown("</div>", unsafe_allow_html=True)
 
