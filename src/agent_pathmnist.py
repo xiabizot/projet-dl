@@ -509,10 +509,18 @@ def explain_with_claude(result=None, mode='V1', prompt_override=None, image=None
     try:
         import anthropic
         import base64
+        import os
         from io import BytesIO
         from PIL import Image as PILImage
 
-        client = anthropic.Anthropic()
+        # Try Streamlit secrets first, then env var
+        api_key = os.environ.get('ANTHROPIC_API_KEY')
+        try:
+            import streamlit as st
+            api_key = st.secrets.get('ANTHROPIC_API_KEY', api_key)
+        except Exception:
+            pass
+        client = anthropic.Anthropic(api_key=api_key)
 
         def img_to_b64(img_arr):
             pil = PILImage.fromarray(img_arr.astype('uint8'))
