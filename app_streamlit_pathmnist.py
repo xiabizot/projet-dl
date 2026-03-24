@@ -1,5 +1,5 @@
 """Cell.IA -- Agent IA Classification de Tissus Colorectaux
-Research conducted on behalf of Necker-Enfants Malades Hospital"""
+Projet universitaire — DU Sorbonne Data Analytics 2026"""
 
 import sys
 from pathlib import Path
@@ -260,7 +260,7 @@ st.markdown(f"""
 </div>
 <div style="text-align:center; margin-bottom:16px;">
     <div style="font-size:0.95rem; color:{P['dim']}; letter-spacing:0.03em;">Classification Explicable de Lames par Learning — Intelligence Artificielle</div>
-    <div style="font-size:0.95rem; color:{P['dim']}; letter-spacing:0.03em; margin-top:4px;">Hopital Necker-Enfants Malades</div>
+    <div style="font-size:0.95rem; color:{P['dim']}; letter-spacing:0.03em; margin-top:4px;">Projet universitaire — DU Sorbonne Data Analytics 2026</div>
     <div style="font-size:1.05rem; color:{P['text']}; letter-spacing:0.08em; font-weight:600; margin-top:6px;">DATA STREAM SCIENCES</div>
 </div>
 """, unsafe_allow_html=True)
@@ -940,7 +940,7 @@ st.markdown(f"""
 <div style="text-align:center; margin-top:2rem; padding:1.5rem 0; border-top:1px solid {P['border']};">
     <div style="font-size:1.8rem; font-weight:700; color:{P['text']}; letter-spacing:-0.02em;">Cell.IA</div>
     <div style="font-size:0.82rem; color:{P['dim']}; margin-top:4px;">Classification Explicable de Lames par Learning — Intelligence Artificielle</div>
-    <div style="font-size:0.72rem; color:{P['dim']}; margin-top:4px;">Research conducted on behalf of Necker-Enfants Malades Hospital</div>
+    <div style="font-size:0.72rem; color:{P['dim']}; margin-top:4px;">Projet universitaire — DU Sorbonne Data Analytics 2026</div>
     <div style="font-size:0.68rem; color:{P['dim']}; margin-top:2px;">DU Sorbonne Data Analytics 2026</div>
 </div>
 """, unsafe_allow_html=True)
