@@ -81,3 +81,20 @@ NB1 (EDA) -> NB2 (MLP) -> NB3 (CNN) -> NB4 (ResNet) -> NB5 (ViT) -> NB6 (Grad-CA
 ## Reproductibilite
 
 Tous les notebooks utilisent SEED=42, torch.backends.cudnn.deterministic=True, et sauvegardent leurs meilleurs checkpoints et predictions en fichiers pickle. Les constantes de normalisation sont calculees dans NB1 et reutilisees dans tous les notebooks suivants.
+
+## Application Cell.IA
+
+**Classification Explicable de Lames par Learning — Intelligence Artificielle**
+
+Application Streamlit deployee en ligne, construite a partir des modeles entraines dans les notebooks.
+
+- Classification par CNN v1 et ensemble CNN + ResNet
+- Monte Carlo Dropout pour l'estimation d'incertitude (20 forward passes)
+- Grad-CAM comparatif CNN vs ResNet (de la black-box a la glass-box)
+- Recommandations par similarite cosine sur embeddings CNN v1 (128D)
+- Visualisation t-SNE et UMAP des clusters du test set
+- Explication en langage naturel par agent IA (version standard et version junior)
+
+```bash
+streamlit run app_streamlit_pathmnist.py
+```
