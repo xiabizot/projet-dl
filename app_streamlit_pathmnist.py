@@ -385,7 +385,7 @@ with tab1:
     if new_image and 'selected_image' in st.session_state:
         img_arr = st.session_state['selected_image']
         st.session_state.pop('last_explanation', None)
-        with st.spinner("Analyse en cours..."):
+        with st.spinner("Cell.IA analyse..."):
             result = run_agent(img_arr, mode='V1')
         st.session_state['last_result'] = result
         st.session_state['last_image'] = img_arr
@@ -521,7 +521,7 @@ with tab1:
             st.markdown(f'<div style="height:8px;"></div>', unsafe_allow_html=True)
             c1, c2, c3 = st.columns([1, 2, 1])
             with c2:
-                if st.button("Explication IA", use_container_width=True):
+                if st.button("Cell.IA explique", use_container_width=True):
                     with st.spinner("L'agent IA analyse..."):
                         try:
                             explanation = explain_with_claude(result=result, mode='V1', image=img_arr)
@@ -644,11 +644,11 @@ with tab2:
 
         st.markdown("---")
 
-        # ── Section 3 : Explication IA du Grad-CAM ──
+        # ── Section 3 : Cell.IA explique le Grad-CAM ──
         _, col_e, _ = st.columns([1, 2, 1])
         with col_e:
-            if st.button("Explication IA du Grad-CAM", use_container_width=True):
-                with st.spinner("L'agent IA analyse les zones d'attention..."):
+            if st.button("Cell.IA explique le Grad-CAM", use_container_width=True):
+                with st.spinner("Cell.IA analyse les zones d'attention..."):
                     try:
                         prompt = f"Analyse cette image d'histologie colorectale et sa heatmap Grad-CAM. Le modele CNN a classifie ce tissu comme '{pred_name}' avec {conf:.0%} de confiance. En 3-4 phrases : 1) Decris ce que tu vois sur l'image originale 2) Explique quelles zones la heatmap met en evidence et pourquoi 3) Ce que cela signifie cliniquement pour un pathologiste. Sois precis sur l'histologie H&E."
                         gc_img = gc_cnn_result['overlay_28'] if gc_cnn_result else None
