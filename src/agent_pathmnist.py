@@ -1,0 +1,629 @@
+"""
+agent_pathmnist.py — Logique metier Agent IA Classification de Tissus PathMNIST
+================================================================================
+Fonctions de prediction, Grad-CAM, recommandation, Claude API.
+Aucune dependance Streamlit.
+"""
+
+import os
+import warnings
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent.parent / '.env', override=True)
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from PIL import Image
+from torchvision import transforms, models
+from sklearn.metrics.pairwise import cosine_similarity
+
+warnings.filterwarnings('ignore')
+
+# =============================================
+# CONFIG
+# =============================================
+BASE = Path(__file__).parent.parent  # src/ -> PROJET/
+DATA_DIR = BASE / 'data'
+MODELS_DIR = DATA_DIR / 'models'
+EMBEDDINGS_DIR = DATA_DIR / 'embeddings'
+
+SEED = 42
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+N_CLASSES = 9
+NORM_MEAN = [0.7405, 0.5330, 0.7058]
+NORM_STD = [0.1237, 0.1768, 0.1244]
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+
+# Class names from medmnist PathMNIST info['label']
+CLASSES = [
+    'adipose',
+    'background',
+    'debris',
+    'lymphocytes',
+    'mucus',
+    'smooth muscle',
+    'normal colon mucosa',
+    'cancer-associated stroma',
+    'colorectal adenocarcinoma epithelium',
+]
+
+CLASS_EMOJI = {
+    'adipose': '🟡',
+    'background': '⬜',
+    'debris': '🟤',
+    'lymphocytes': '🟣',
+    'mucus': '🔵',
+    'smooth muscle': '🟠',
+    'normal colon mucosa': '🟢',
+    'cancer-associated stroma': '🔴',
+    'colorectal adenocarcinoma epithelium': '⭕',
+}
+
+CLASS_COLOR = {
+    'adipose': '#FFD700',
+    'background': '#CCCCCC',
+    'debris': '#8B4513',
+    'lymphocytes': '#9370DB',
+    'mucus': '#4169E1',
+    'smooth muscle': '#FF8C00',
+    'normal colon mucosa': '#2E8B57',
+    'cancer-associated stroma': '#DC143C',
+    'colorectal adenocarcinoma epithelium': '#FF4500',
+}
+
+
+# =============================================
+# Architecture CNN v1 (identique NB3 — source unique)
+# =============================================
+def create_cnn(n_classes=9):
+    """CNN v1 architecture from NOTEBOOK_3_CNN_PathMNIST.ipynb."""
+    model = nn.Sequential(
+        nn.Conv2d(3, 32, kernel_size=3, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+        nn.Conv2d(32, 32, kernel_size=3, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+        nn.MaxPool2d(2, 2), nn.Dropout(0.25),
+        nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+        nn.Conv2d(64, 64, kernel_size=3, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+        nn.MaxPool2d(2, 2), nn.Dropout(0.35),
+        nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+        nn.Conv2d(128, 128, kernel_size=3, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+        nn.MaxPool2d(2, 2), nn.Dropout(0.5),
+        nn.Flatten(),
+        nn.Linear(128 * 3 * 3, 128), nn.ReLU(), nn.Dropout(0.5),
+        nn.Linear(128, n_classes),
+    )
+    return model
+
+
+# =============================================
+# Architecture ResNet-18 (identique NB4 — source unique)
+# =============================================
+def build_resnet18(freeze_backbone=False, n_classes=9):
+    """ResNet-18 architecture from NOTEBOOK_4_ResNet_PathMNIST.ipynb."""
+    model = models.resnet18(weights=None)  # no download at inference
+    if freeze_backbone:
+        for param in model.parameters():
+            param.requires_grad = False
+    in_features = model.fc.in_features  # 512
+    model.fc = nn.Linear(in_features, n_classes)
+    return model
+
+
+# =============================================
+# Transforms
+# =============================================
+cnn_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(NORM_MEAN, NORM_STD),
+])
+
+resnet_transform = transforms.Compose([
+    transforms.Resize(224),
+    transforms.ToTensor(),
+    transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+])
+
+
+# =============================================
+# CHARGEMENT ARTEFACTS
+# =============================================
+_cache = {}
+
+
+def load_models():
+    """Charge CNN v1 et ResNet FT depuis les fichiers .pth. Retourne un dict."""
+    if _cache.get('loaded'):
+        return _cache
+
+    # CNN v1
+    cnn = create_cnn(N_CLASSES)
+    cnn_path = MODELS_DIR / 'NB3_cnn_model_v1.pth'
+    cnn.load_state_dict(torch.load(cnn_path, map_location=DEVICE, weights_only=True))
+    cnn = cnn.to(DEVICE)
+    cnn.eval()
+    _cache['cnn'] = cnn
+
+    # ResNet-18 fine-tuning
+    resnet = build_resnet18(freeze_backbone=False, n_classes=N_CLASSES)
+    resnet_path = MODELS_DIR / 'resnet_finetune_model.pth'
+    resnet.load_state_dict(torch.load(resnet_path, map_location=DEVICE, weights_only=True))
+    resnet = resnet.to(DEVICE)
+    resnet.eval()
+    _cache['resnet'] = resnet
+
+    # Embeddings test set (for recommendations) — generated by NB8
+    emb_path = EMBEDDINGS_DIR / 'cnn_test_embeddings.npy'
+    labels_path = EMBEDDINGS_DIR / 'cnn_test_labels.npy'
+    images_path = EMBEDDINGS_DIR / 'cnn_test_images.npy'
+    if emb_path.exists():
+        _cache['embeddings_test'] = np.load(emb_path)
+        _cache['labels_test'] = np.load(labels_path)
+    if images_path.exists():
+        _cache['images_test'] = np.load(images_path)
+
+    _cache['loaded'] = True
+    return _cache
+
+
+# =============================================
+# PREPROCESSING IMAGE
+# =============================================
+def _to_pil(image):
+    """Convert numpy array or PIL Image to PIL Image (RGB)."""
+    if isinstance(image, Image.Image):
+        return image.convert('RGB')
+    if isinstance(image, np.ndarray):
+        if image.dtype != np.uint8:
+            if image.max() <= 1.0:
+                image = (image * 255).astype(np.uint8)
+            else:
+                image = image.astype(np.uint8)
+        return Image.fromarray(image).convert('RGB')
+    raise ValueError(f"Type d'image non supporte: {type(image)}")
+
+
+# =============================================
+# PREDICTION V1 — CNN seul
+# =============================================
+def predict_v1(image):
+    """
+    Prediction CNN v1 seul.
+
+    Args:
+        image: numpy array (28x28x3) ou PIL Image
+
+    Returns:
+        dict avec pred_class, pred_idx, confidence, probas, top_k
+    """
+    m = load_models()
+    cnn = m['cnn']
+
+    pil_img = _to_pil(image)
+    tensor = cnn_transform(pil_img).unsqueeze(0).to(DEVICE)
+
+    with torch.no_grad():
+        logits = cnn(tensor)
+        probas = F.softmax(logits, dim=1).cpu().numpy()[0]
+
+    pred_idx = int(np.argmax(probas))
+    top_k = sorted(
+        [(CLASSES[i], float(probas[i])) for i in range(N_CLASSES)],
+        key=lambda x: x[1], reverse=True
+    )
+
+    return {
+        'pred_class': CLASSES[pred_idx],
+        'pred_idx': pred_idx,
+        'confidence': float(probas[pred_idx]),
+        'probas': probas,
+        'top_k': top_k,
+        'model': 'CNN v1',
+    }
+
+
+# =============================================
+# PREDICTION V2 — Ensemble CNN + ResNet
+# =============================================
+def predict_v2(image, w_cnn=0.5, w_resnet=0.5):
+    """
+    Prediction ensemble CNN v1 + ResNet-18 FT.
+
+    Args:
+        image: numpy array (28x28x3) ou PIL Image
+        w_cnn: poids CNN dans l'ensemble
+        w_resnet: poids ResNet dans l'ensemble
+
+    Returns:
+        dict avec pred_class, pred_idx, confidence, probas, top_k,
+        probas_cnn, probas_resnet
+    """
+    m = load_models()
+    cnn = m['cnn']
+    resnet = m['resnet']
+
+    pil_img = _to_pil(image)
+
+    # CNN v1 prediction
+    tensor_cnn = cnn_transform(pil_img).unsqueeze(0).to(DEVICE)
+    with torch.no_grad():
+        logits_cnn = cnn(tensor_cnn)
+        probas_cnn = F.softmax(logits_cnn, dim=1).cpu().numpy()[0]
+
+    # ResNet-18 prediction
+    tensor_rn = resnet_transform(pil_img).unsqueeze(0).to(DEVICE)
+    with torch.no_grad():
+        logits_rn = resnet(tensor_rn)
+        probas_rn = F.softmax(logits_rn, dim=1).cpu().numpy()[0]
+
+    # Weighted ensemble
+    probas_ens = w_cnn * probas_cnn + w_resnet * probas_rn
+    pred_idx = int(np.argmax(probas_ens))
+
+    top_k = sorted(
+        [(CLASSES[i], float(probas_ens[i])) for i in range(N_CLASSES)],
+        key=lambda x: x[1], reverse=True
+    )
+
+    return {
+        'pred_class': CLASSES[pred_idx],
+        'pred_idx': pred_idx,
+        'confidence': float(probas_ens[pred_idx]),
+        'probas': probas_ens,
+        'probas_cnn': probas_cnn,
+        'probas_resnet': probas_rn,
+        'top_k': top_k,
+        'model': 'Ensemble (CNN v1 + ResNet FT)',
+        'weights': {'cnn': w_cnn, 'resnet': w_resnet},
+    }
+
+
+# =============================================
+# GRAD-CAM (logique NB6 — PyTorch hooks)
+# =============================================
+class GradCAM:
+    """Grad-CAM implementation using PyTorch hooks (from NB6)."""
+
+    def __init__(self, model, target_layer):
+        self.model = model
+        self.target_layer = target_layer
+        self.activations = None
+        self.gradients = None
+        self._register_hooks()
+
+    def _register_hooks(self):
+        def forward_hook(module, input, output):
+            self.activations = output.detach()
+
+        def backward_hook(module, grad_input, grad_output):
+            self.gradients = grad_output[0].detach()
+
+        self.target_layer.register_forward_hook(forward_hook)
+        self.target_layer.register_full_backward_hook(backward_hook)
+
+    def __call__(self, input_tensor, cls=None):
+        self.model.eval()
+
+        # Forward pass
+        logits = self.model(input_tensor)
+        if cls is None:
+            cls = logits.argmax(dim=1).item()
+
+        # Backward pass
+        self.model.zero_grad()
+        logits[0, cls].backward()
+
+        # Global average pooling of gradients
+        weights = self.gradients.mean(dim=[2, 3], keepdim=True)
+
+        # Weighted sum of activation maps
+        cam = (weights * self.activations).sum(dim=1, keepdim=True)
+
+        # ReLU + normalise to [0, 1]
+        cam = F.relu(cam)
+        cam = cam.squeeze()
+        cam = cam - cam.min()
+        if cam.max() > 0:
+            cam = cam / cam.max()
+
+        return cam.cpu().numpy(), cls
+
+
+def grad_cam(image, model='resnet'):
+    """
+    Generate Grad-CAM heatmap for an image.
+
+    Args:
+        image: numpy array (28x28x3) ou PIL Image
+        model: 'resnet' ou 'cnn'
+
+    Returns:
+        dict avec heatmap (numpy), overlay (numpy), pred_idx, pred_class
+    """
+    import matplotlib.cm as cm
+
+    m = load_models()
+    pil_img = _to_pil(image)
+
+    if model == 'resnet':
+        net = m['resnet']
+        target_layer = net.layer4[1].conv2
+        tensor = resnet_transform(pil_img).unsqueeze(0).to(DEVICE)
+    else:
+        net = m['cnn']
+        # Last conv layer in CNN v1 Sequential: index 19 = Conv2d(128, 128)
+        target_layer = net[19]
+        tensor = cnn_transform(pil_img).unsqueeze(0).to(DEVICE)
+
+    gcam = GradCAM(model=net, target_layer=target_layer)
+    heatmap, pred_cls = gcam(tensor)
+
+    # Overlay heatmap on original image
+    H, W = tensor.shape[2], tensor.shape[3]
+    cam_t = torch.tensor(heatmap).unsqueeze(0).unsqueeze(0)
+    cam_r = F.interpolate(cam_t, size=(H, W), mode='bilinear',
+                          align_corners=False).squeeze().numpy()
+
+    img_np = tensor.squeeze().permute(1, 2, 0).cpu().numpy()
+    img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min() + 1e-8)
+
+    heatmap_color = cm.jet(cam_r)[:, :, :3]
+    alpha = 0.45
+    overlay = np.clip((1 - alpha) * img_np + alpha * heatmap_color, 0, 1)
+
+    # Also create a 28x28 overlay for display
+    pil_np = np.array(pil_img).astype(np.float32) / 255.0
+    cam_28 = F.interpolate(cam_t, size=(28, 28), mode='bilinear',
+                           align_corners=False).squeeze().numpy()
+    heatmap_28 = cm.jet(cam_28)[:, :, :3]
+    overlay_28 = np.clip((1 - alpha) * pil_np + alpha * heatmap_28, 0, 1)
+
+    return {
+        'heatmap': heatmap,
+        'heatmap_resized': cam_r,
+        'overlay': overlay,
+        'overlay_28': overlay_28,
+        'pred_idx': pred_cls,
+        'pred_class': CLASSES[pred_cls],
+        'model_used': model,
+    }
+
+
+# =============================================
+# EXTRACTION EMBEDDINGS CNN (pour recommandation)
+# =============================================
+def _extract_cnn_embedding(image):
+    """Extract 128D embedding from CNN v1 (before final Linear layer)."""
+    m = load_models()
+    cnn = m['cnn']
+    pil_img = _to_pil(image)
+    tensor = cnn_transform(pil_img).unsqueeze(0).to(DEVICE)
+
+    # Forward through all layers except the last Linear (index 27 = Linear(128, 9))
+    # Sequential layers: ... Flatten(24), Linear(1152,128)(25), ReLU(26), Dropout(27), Linear(128,9)(28)
+    # We want output after ReLU at index 26 (128D embedding)
+    x = tensor
+    with torch.no_grad():
+        for i, layer in enumerate(cnn):
+            x = layer(x)
+            if i == 26:  # after ReLU following Linear(1152, 128)
+                return x.cpu().numpy().flatten()
+    return None
+
+
+def export_test_embeddings():
+    """
+    Export CNN v1 embeddings for the full PathMNIST test set.
+    Saves to data/embeddings/.
+    """
+    from medmnist import PathMNIST as PathMNISTDS
+
+    m = load_models()
+    cnn = m['cnn']
+
+    test_ds = PathMNISTDS(split='test', download=False, root=str(DATA_DIR))
+
+    embeddings = []
+    labels = []
+    images = []
+
+    cnn.eval()
+    with torch.no_grad():
+        for idx in range(len(test_ds)):
+            img, lbl = test_ds[idx]
+            pil_img = _to_pil(np.array(img))
+            tensor = cnn_transform(pil_img).unsqueeze(0).to(DEVICE)
+
+            # Extract embedding (layer 26 = ReLU after fc1)
+            x = tensor
+            for i, layer in enumerate(cnn):
+                x = layer(x)
+                if i == 26:
+                    emb = x.cpu().numpy().flatten()
+                    break
+
+            embeddings.append(emb)
+            labels.append(int(lbl.flatten()[0]))
+            images.append(np.array(img))
+
+    os.makedirs(EMBEDDINGS_DIR, exist_ok=True)
+    np.save(EMBEDDINGS_DIR / 'cnn_test_embeddings.npy', np.array(embeddings))
+    np.save(EMBEDDINGS_DIR / 'cnn_test_labels.npy', np.array(labels))
+    np.save(EMBEDDINGS_DIR / 'cnn_test_images.npy', np.array(images))
+
+    print(f"Embeddings exported: {len(embeddings)} images, shape {np.array(embeddings).shape}")
+    return np.array(embeddings), np.array(labels), np.array(images)
+
+
+# =============================================
+# RECOMMANDATION
+# =============================================
+def get_recommendations(image, n=5):
+    """
+    Find n most similar images in the test set using CNN v1 feature embeddings.
+
+    Args:
+        image: numpy array (28x28x3) ou PIL Image
+        n: number of recommendations
+
+    Returns:
+        list of dicts with idx, label, class_name, similarity, image
+    """
+    m = load_models()
+    if 'embeddings_test' not in m:
+        print("Embeddings non disponibles. Lancez export_test_embeddings() d'abord.")
+        return []
+
+    embedding = _extract_cnn_embedding(image)
+    if embedding is None:
+        return []
+
+    emb_test = m['embeddings_test']
+    sims = cosine_similarity(embedding.reshape(1, -1), emb_test)[0]
+
+    top_idx = sims.argsort()[::-1][:n]
+
+    reco = []
+    for ri in top_idx:
+        entry = {
+            'idx': int(ri),
+            'label': int(m['labels_test'][ri]),
+            'class_name': CLASSES[int(m['labels_test'][ri])],
+            'similarity': round(float(sims[ri]) * 100, 1),
+        }
+        if 'images_test' in m:
+            entry['image'] = m['images_test'][ri]
+        reco.append(entry)
+
+    return reco
+
+
+# =============================================
+# CLAUDE API
+# =============================================
+def explain_with_claude(result=None, mode='V1', prompt_override=None, image=None, gradcam_image=None):
+    """Explication Claude API pour histologie avec vision. Retourne un str."""
+    try:
+        import anthropic
+        import base64
+        from io import BytesIO
+        from PIL import Image as PILImage
+
+        client = anthropic.Anthropic()
+
+        def img_to_b64(img_arr):
+            pil = PILImage.fromarray(img_arr.astype('uint8'))
+            pil = pil.resize((224, 224), PILImage.NEAREST)
+            buf = BytesIO()
+            pil.save(buf, format='PNG')
+            return base64.b64encode(buf.getvalue()).decode()
+
+        topk_str = ''
+        if result:
+            topk_str = ', '.join(
+                f"{c} ({p:.1%})" for c, p in result.get('top_k', [])[:3]
+            )
+
+        # Build content with images if available
+        content = []
+
+        if image is not None:
+            content.append({
+                'type': 'image',
+                'source': {'type': 'base64', 'media_type': 'image/png', 'data': img_to_b64(image)}
+            })
+
+        if gradcam_image is not None:
+            content.append({
+                'type': 'image',
+                'source': {'type': 'base64', 'media_type': 'image/png', 'data': img_to_b64(gradcam_image)}
+            })
+
+        if prompt_override:
+            content.append({'type': 'text', 'text': prompt_override})
+        elif mode == 'V1':
+            content.append({'type': 'text', 'text': (
+                f"Tu es un assistant en anatomopathologie numerique.\n"
+                f"Un modele CNN a classifie cette image d'histologie colorectale (28x28 H&E).\n"
+                f"Prediction : {result['pred_class']} (confiance {result['confidence']:.1%})\n"
+                f"Top 3 : {topk_str}\n\n"
+                f"En 3-4 phrases, analyse l'image et explique pourquoi ce tissu a ete identifie ainsi. "
+                f"Decris ce que tu vois : structure cellulaire, coloration, motifs spatiaux. "
+                f"Si une heatmap Grad-CAM est fournie, explique quelles zones le modele regarde "
+                f"et ce que cela signifie cliniquement. Reste factuel et pedagogique."
+            )})
+        else:
+            content.append({'type': 'text', 'text': (
+                f"Tu es un expert en anatomopathologie numerique.\n"
+                f"Un ensemble de modeles (CNN + ResNet-18) a classifie cette image "
+                f"d'histologie colorectale (28x28 H&E).\n"
+                f"Prediction : {result['pred_class']} (confiance {result['confidence']:.1%})\n"
+                f"Top 3 : {topk_str}\n"
+                f"Modele : {result.get('model', 'Ensemble')}\n\n"
+                f"En 4-5 phrases :\n"
+                f"1. Analyse l'image : decris les structures histologiques que tu observes\n"
+                f"2. Si une heatmap Grad-CAM est fournie, explique quelles zones le modele regarde et pourquoi\n"
+                f"3. Explique pourquoi un ensemble CNN+ResNet est plus fiable qu'un modele seul\n"
+                f"4. Si la confiance est < 70%, mentionne les confusions possibles\n"
+                f"Reste sobre et factuel."
+            )})
+
+        resp = client.messages.create(
+            model='claude-sonnet-4-20250514',
+            max_tokens=500,
+            messages=[{'role': 'user', 'content': content}]
+        )
+        return resp.content[0].text
+
+    except Exception as e:
+        return f"Claude API non disponible : {e}"
+
+
+# =============================================
+# POINT D'ENTREE PRINCIPAL
+# =============================================
+def run_agent(image, mode='V1', with_claude=False):
+    """
+    Point d'entree unique de l'agent PathMNIST.
+
+    Args:
+        image: numpy array (28x28x3) ou PIL Image
+        mode: 'V1' (CNN seul) ou 'V2' (ensemble + Grad-CAM)
+        with_claude: bool — generer explication Claude API
+
+    Returns:
+        dict avec prediction, confiance, top_k, grad_cam, reco, explanation, etc.
+    """
+    result = {}
+
+    if mode == 'V1':
+        pred = predict_v1(image)
+        result.update(pred)
+    else:
+        pred = predict_v2(image)
+        result.update(pred)
+
+        # Grad-CAM (ResNet par defaut pour V2)
+        try:
+            gcam_result = grad_cam(image, model='resnet')
+            result['grad_cam'] = gcam_result
+        except Exception as e:
+            result['grad_cam'] = None
+            result['grad_cam_error'] = str(e)
+
+    # Recommendations
+    try:
+        reco = get_recommendations(image, n=5)
+        result['recommendations'] = reco
+    except Exception:
+        result['recommendations'] = []
+
+    # Claude API explanation
+    if with_claude:
+        explanation = explain_with_claude(result=result, mode=mode)
+        result['explanation'] = explanation
+
+    return result
