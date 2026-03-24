@@ -84,17 +84,46 @@ Tous les notebooks utilisent SEED=42, torch.backends.cudnn.deterministic=True, e
 
 ## Application Cell.IA
 
-**Classification Explicable de Lames par Learning — Intelligence Artificielle**
+**C**lassification **E**xplicable de **L**ames par **L**earning — **I**ntelligence **A**rtificielle
 
-Application Streamlit deployee en ligne, construite a partir des modeles entraines dans les notebooks.
+Application Streamlit deployee en ligne : https://cell-ia.streamlit.app
 
-- Classification par CNN v1 et ensemble CNN + ResNet
-- Monte Carlo Dropout pour l'estimation d'incertitude (20 forward passes)
-- Grad-CAM comparatif CNN vs ResNet (de la black-box a la glass-box)
-- Recommandations par similarite cosine sur embeddings CNN v1 (128D)
-- Visualisation t-SNE et UMAP des clusters du test set
-- Explication en langage naturel par agent IA (version standard et version junior)
+Cell.IA met en production les modeles entraines dans les notebooks sous forme d'un agent IA interactif. L'application est concue pour etre consultable sur mobile et propose deux niveaux d'explication (standard et junior pour les adolescents).
+
+### Les 4 onglets
+
+**1. Classification**
+Clique sur un microbe kawaii (une image aleatoire de la classe est chargee depuis le test set), utilise l'analyse aleatoire, ou glisse ta propre image. Cell.IA classifie le tissu et affiche :
+- La classe predite avec un badge colore
+- Un signal clinique : vert (tissu sain), jaune (classe a faible recall, supervision recommandee), rouge (cancer detecte)
+- La confiance du modele (softmax)
+- L'incertitude estimee par **Monte Carlo Dropout** : 20 forward passes avec dropout active a l'inference. Si les 20 predictions convergent, le modele est stable. Si elles divergent, le modele hesite et une verification humaine est recommandee
+- Les metriques de la classe predite (precision, recall, F1-score) et les moyennes globales (accuracy, macro F1, weighted F1)
+- La distribution des probabilites sur les 9 classes
+- Deux boutons d'explication par agent IA : "Cell.IA explique" (technique, pour le pathologiste) et "Cell.IA version junior" (accessible, pour les adolescents)
+
+**2. Grad-CAM**
+De la **black-box** a la **glass-box**. Le Grad-CAM montre ou chaque modele regarde pour prendre sa decision :
+- 3 colonnes : image originale, heatmap CNN v1, heatmap ResNet FT
+- Score de concordance (cosine similarity entre les deux heatmaps) : si les modeles regardent au meme endroit, la prediction est fiable
+- Comparaison avec l'image la plus similaire du test set et son Grad-CAM
+- Explication par agent IA du Grad-CAM (avec envoi de l'image et de la heatmap a l'API Claude pour analyse visuelle)
+- Exigences cliniques : Trust (le medecin comprend), Safety (bon recall + bon endroit), Liability (raisonnement explicable)
+
+**3. Embeddings**
+Visualisation de l'espace des representations apprises par le CNN v1 :
+- 5 images les plus similaires (cosine similarity sur les embeddings 128D) avec nom de classe et pourcentage de similarite
+- Carte **t-SNE** : 7180 images projetees de 128D vers 2D, preservant les voisinages locaux. Les clusters bien separes correspondent aux classes a fort recall
+- Carte **UMAP** : meme projection mais preservant aussi la structure globale. Les distances entre clusters sont plus significatives
+- Position de l'image analysee (etoile rouge) sur la carte t-SNE avec ses 5 plus proches voisins
+
+**4. Resultats**
+Tableau comparatif des 7 modeles (MLP, CNN sans aug, CNN v1, ResNet frozen, ResNet FT, ViT, ViT sans pos) avec test accuracy, precision cancer, recall cancer, F1 cancer, parametres et ecart par rapport au meilleur modele. Classification reports complets CNN v1 vs ResNet FT cote a cote avec colonne delta F1. Tableau des moyennes globales (macro avg, weighted avg, accuracy).
+
+### Lancer l'application en local
 
 ```bash
 streamlit run app_streamlit_pathmnist.py
 ```
+
+Les modeles sont telecharges automatiquement depuis Google Drive au premier lancement.
