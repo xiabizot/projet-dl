@@ -539,14 +539,29 @@ with tab1:
                 prob_df = pd.DataFrame({'Classe': CLASSES, 'Proba': probas}).sort_values('Proba', ascending=True)
                 st.bar_chart(prob_df.set_index('Classe'), height=220, use_container_width=True)
 
-            # Agent IA — explain with Claude
+            # Agent IA — explain with Claude (adult + kids)
             st.markdown(f'<div style="height:8px;"></div>', unsafe_allow_html=True)
-            c1, c2, c3 = st.columns([1, 2, 1])
+            c1, c2, c3, c4 = st.columns([1, 2, 2, 1])
             with c2:
                 if st.button("Cell.IA explique", use_container_width=True):
-                    with st.spinner("L'agent IA analyse..."):
+                    with st.spinner("Cell.IA analyse..."):
                         try:
                             explanation = explain_with_claude(result=result, mode='V1', image=img_arr)
+                            st.session_state['last_explanation'] = explanation
+                        except Exception as e:
+                            st.session_state['last_explanation'] = f"Erreur : {e}"
+            with c3:
+                if st.button("Cell.IA explique pour les enfants", use_container_width=True):
+                    with st.spinner("Cell.IA explique simplement..."):
+                        try:
+                            kid_prompt = (
+                                f"Tu es Cell.IA, un assistant medical qui parle a un enfant de 8 ans hospitalise. "
+                                f"Le modele a classifie cette image de tissu comme '{CLASSES[pred_cls]}' avec {conf:.0%} de confiance. "
+                                f"Explique en 2-3 phrases tres simples ce que le modele a vu, comme si tu parlais a un enfant curieux. "
+                                f"Utilise des comparaisons avec des choses que l'enfant connait (couleurs, formes, textures du quotidien). "
+                                f"Sois rassurant et bienveillant. Pas de jargon medical."
+                            )
+                            explanation = explain_with_claude(result=result, mode='V1', image=img_arr, prompt_override=kid_prompt)
                             st.session_state['last_explanation'] = explanation
                         except Exception as e:
                             st.session_state['last_explanation'] = f"Erreur : {e}"
