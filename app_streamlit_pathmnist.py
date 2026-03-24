@@ -682,14 +682,30 @@ with tab2:
         st.markdown("---")
 
         # ── Section 3 : Cell.IA explique le Grad-CAM ──
-        _, col_e, _ = st.columns([1, 2, 1])
-        with col_e:
+        c1, c2, c3, c4 = st.columns([1, 2, 2, 1])
+        with c2:
             if st.button("Cell.IA explique le Grad-CAM", use_container_width=True):
                 with st.spinner("Cell.IA analyse les zones d'attention..."):
                     try:
                         prompt = f"Analyse cette image d'histologie colorectale et sa heatmap Grad-CAM. Le modele CNN a classifie ce tissu comme '{pred_name}' avec {conf:.0%} de confiance. En 3-4 phrases : 1) Decris ce que tu vois sur l'image originale 2) Explique quelles zones la heatmap met en evidence et pourquoi 3) Ce que cela signifie cliniquement pour un pathologiste. Sois precis sur l'histologie H&E."
                         gc_img = gc_cnn_result['overlay_28'] if gc_cnn_result else None
                         explanation = explain_with_claude(result=result, mode='V1', prompt_override=prompt, image=img_arr, gradcam_image=gc_img)
+                        st.session_state['gc_explanation'] = explanation
+                    except Exception as e:
+                        st.session_state['gc_explanation'] = f"Erreur : {e}"
+        with c3:
+            if st.button("Cell.IA version junior (Grad-CAM)", use_container_width=True):
+                with st.spinner("Cell.IA explique simplement..."):
+                    try:
+                        kid_prompt = (
+                            f"Tu es Cell.IA, un assistant qui explique a un ado de 10-14 ans comment fonctionne un microscope intelligent. "
+                            f"Le modele a regarde cette image de tissu et a decide que c'est du '{pred_name}'. "
+                            f"La carte de chaleur (Grad-CAM) montre en couleurs chaudes les zones que l'IA a regardees pour prendre sa decision. "
+                            f"Explique en 3 phrases ce que ca veut dire : ou l'IA regarde, pourquoi ces zones sont importantes, "
+                            f"et pourquoi c'est utile pour le medecin de savoir ou l'IA regarde. Vocabulaire accessible, pas bebe."
+                        )
+                        gc_img = gc_cnn_result['overlay_28'] if gc_cnn_result else None
+                        explanation = explain_with_claude(result=result, mode='V1', prompt_override=kid_prompt, image=img_arr, gradcam_image=gc_img)
                         st.session_state['gc_explanation'] = explanation
                     except Exception as e:
                         st.session_state['gc_explanation'] = f"Erreur : {e}"
