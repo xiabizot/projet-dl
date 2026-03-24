@@ -276,7 +276,7 @@ class_reps = get_class_reps(test_ds)
 # =============================================
 # TABS
 # =============================================
-tab1, tab2, tab3, tab5, tab4 = st.tabs(["Classification", "Grad-CAM", "Recommandations", "Clusters", "Resultats"])
+tab1, tab2, tab5, tab4 = st.tabs(["Classification", "Grad-CAM", "Embeddings", "Resultats"])
 
 
 # ═══════════════════════════════════════════
@@ -462,21 +462,25 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-            # Monte Carlo Dropout — uncertainty
+            # Monte Carlo Dropout — uncertainty as text badge only (no misleading bar)
             uncertainty = result.get('uncertainty', None)
             if uncertainty is not None:
                 unc_pct = uncertainty * 100
-                unc_color = P['vert'] if unc_pct < 3 else (P['jaune'] if unc_pct < 8 else P['rose'])
-                unc_label = "Prediction stable" if unc_pct < 3 else ("Legere hesitation" if unc_pct < 8 else "Forte incertitude — verification recommandee")
+                if unc_pct < 3:
+                    unc_color = P['vert']
+                    unc_label = "Prediction stable"
+                elif unc_pct < 8:
+                    unc_color = P['jaune']
+                    unc_label = "Legere hesitation"
+                else:
+                    unc_color = P['rose']
+                    unc_label = "Forte incertitude — verification recommandee"
                 st.markdown(f"""
-                <div style="max-width:320px; margin:0 auto 10px auto;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.68rem; color:{P['dim']};">
-                        <span>Incertitude (MC Dropout)</span><span>{unc_pct:.1f}%</span>
-                    </div>
-                    <div style="background:{P['card']}; border-radius:3px; height:6px; border:1px solid {P['border']};">
-                        <div style="width:{min(unc_pct * 5, 100):.0f}%; height:100%; border-radius:3px; background:{unc_color};"></div>
-                    </div>
-                    <div style="text-align:center; font-size:0.62rem; color:{unc_color}; margin-top:2px;">{unc_label}</div>
+                <div style="text-align:center; margin:6px auto; max-width:400px;
+                    padding:6px 14px; border-radius:4px; border:1.5px solid {unc_color};
+                    background:{unc_color}12;">
+                    <span style="font-size:0.72rem; color:{unc_color}; font-weight:600;">MC Dropout (20 passes) : {unc_label}</span>
+                    <span style="font-size:0.68rem; color:{P['dim']}; margin-left:8px;">ecart-type = {unc_pct:.1f}%</span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -693,43 +697,6 @@ with tab2:
     else:
         st.info("Analyse d'abord une image dans l'onglet Classification.")
 
-
-# ═══════════════════════════════════════════
-# TAB 3 — RECOMMANDATIONS
-# ═══════════════════════════════════════════
-with tab3:
-    st.markdown(f"""
-    <div style="text-align:center; margin-bottom:12px;">
-        <div style="font-size:0.85rem; font-weight:600; color:{P['rose']};">Images similaires</div>
-        <div style="font-size:0.7rem; color:{P['dim']}; margin-top:2px;">5 images les plus proches (cosine similarity, embeddings CNN v1)</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if 'last_image' in st.session_state:
-        try:
-            recs = get_recommendations(st.session_state['last_image'], n=5)
-            if recs:
-                # Build HTML grid for perfect alignment
-                recs_html = '<div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">'
-                for rec in recs:
-                    rec_b64 = pil_to_b64(Image.fromarray(rec['image']), size=140)
-                    c = CLS_COLOR[rec['label']]
-                    cls_name = CLASSES[rec['label']]
-                    sim = rec['similarity']
-                    recs_html += f'''
-                    <div style="width:150px; text-align:center;">
-                        <img src="data:image/png;base64,{rec_b64}" style="width:140px; height:140px; image-rendering:pixelated; border-radius:4px; border:1.5px solid {P['border']}; display:block; margin:0 auto;">
-                        <div style="font-size:0.7rem; color:{c}; font-weight:600; margin-top:4px;">{cls_name}</div>
-                        <div style="font-size:0.62rem; color:{P['dim']};">sim: {sim:.1f}%</div>
-                    </div>'''
-                recs_html += '</div>'
-                st.markdown(recs_html, unsafe_allow_html=True)
-            else:
-                st.info("Embeddings non disponibles. Lancez NB8 pour les generer.")
-        except Exception as e:
-            st.info(f"Recommandations non disponibles : {e}")
-    else:
-        st.info("Analysez d'abord une image dans l'onglet Classification.")
 
 
 # ═══════════════════════════════════════════
@@ -987,6 +954,33 @@ with tab5:
                     nn_html += f'<div style="text-align:center;"><img src="data:image/png;base64,{nn_b64}" style="width:100px; height:100px; image-rendering:pixelated; border-radius:4px; border:1.5px solid {P["border"]};"><div style="font-size:0.62rem; color:{colors_map[nn_cls]}; font-weight:600; margin-top:3px;">{CLASSES[nn_cls]}</div></div>'
                 nn_html += '</div>'
                 st.markdown(nn_html, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # Recommendations (cosine similarity)
+        if 'last_image' in st.session_state:
+            st.markdown(f'<div style="text-align:center; font-size:0.78rem; font-weight:600; color:{P["rose"]}; margin:10px 0 6px 0;">Images les plus similaires (cosine similarity)</div>', unsafe_allow_html=True)
+            try:
+                recs = get_recommendations(st.session_state['last_image'], n=5)
+                if recs:
+                    recs_html = '<div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">'
+                    for rec in recs:
+                        rec_b64 = pil_to_b64(Image.fromarray(rec['image']), size=140)
+                        c = CLS_COLOR[rec['label']]
+                        cls_name = CLASSES[rec['label']]
+                        sim = rec['similarity']
+                        recs_html += f'''
+                        <div style="width:150px; text-align:center;">
+                            <img src="data:image/png;base64,{rec_b64}" style="width:140px; height:140px; image-rendering:pixelated; border-radius:4px; border:1.5px solid {P['border']}; display:block; margin:0 auto;">
+                            <div style="font-size:0.7rem; color:{c}; font-weight:600; margin-top:4px;">{cls_name}</div>
+                            <div style="font-size:0.62rem; color:{P['dim']};">sim: {sim:.1f}%</div>
+                        </div>'''
+                    recs_html += '</div>'
+                    st.markdown(recs_html, unsafe_allow_html=True)
+                else:
+                    st.caption("Embeddings non disponibles.")
+            except Exception as e:
+                st.caption(f"Recommandations non disponibles : {e}")
     else:
         st.caption("Embeddings non disponibles. Lancez NB8 pour les generer.")
 
