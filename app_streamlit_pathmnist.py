@@ -816,6 +816,35 @@ with tab4:
 # TAB 5 — CLUSTERS
 # ═══════════════════════════════════════════
 with tab5:
+    # Recommendations first
+    if 'last_image' in st.session_state:
+        st.markdown(f'<div style="text-align:center; font-size:0.85rem; font-weight:600; color:{P["rose"]}; margin-bottom:4px;">Images les plus similaires (cosine similarity)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align:center; font-size:0.65rem; color:{P["dim"]}; margin-bottom:10px;">5 plus proches voisins dans l\'espace des embeddings CNN v1 (128D)</div>', unsafe_allow_html=True)
+        try:
+            recs = get_recommendations(st.session_state['last_image'], n=5)
+            if recs:
+                recs_html = '<div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">'
+                for rec in recs:
+                    rec_b64 = pil_to_b64(Image.fromarray(rec['image']), size=140)
+                    c = CLS_COLOR[rec['label']]
+                    cls_name = CLASSES[rec['label']]
+                    sim = rec['similarity']
+                    recs_html += f'''
+                    <div style="width:150px; text-align:center;">
+                        <img src="data:image/png;base64,{rec_b64}" style="width:140px; height:140px; image-rendering:pixelated; border-radius:4px; border:1.5px solid {P['border']}; display:block; margin:0 auto;">
+                        <div style="font-size:0.7rem; color:{c}; font-weight:600; margin-top:4px;">{cls_name}</div>
+                        <div style="font-size:0.62rem; color:{P['dim']};">sim: {sim:.1f}%</div>
+                    </div>'''
+                recs_html += '</div>'
+                st.markdown(recs_html, unsafe_allow_html=True)
+            else:
+                st.caption("Embeddings non disponibles.")
+        except Exception as e:
+            st.caption(f"Recommandations non disponibles : {e}")
+        st.markdown("---")
+    else:
+        st.info("Analyse d'abord une image dans l'onglet Classification.")
+
     st.markdown(f"""
     <div style="text-align:center; margin-bottom:12px;">
         <div style="font-size:0.85rem; font-weight:600; color:{P['rose']};">Carte t-SNE des embeddings CNN v1</div>
@@ -974,44 +1003,6 @@ with tab5:
                 st.pyplot(fig2)
                 plt.close()
 
-                # Show 5 nearest neighbors
-                st.markdown(f'<div style="text-align:center; font-size:0.72rem; color:{P["dim"]}; margin:8px 0;">5 plus proches voisins dans l\'espace des embeddings</div>', unsafe_allow_html=True)
-                nn_html = '<div style="display:flex; justify-content:center; gap:10px;">'
-                for ni in idxs[0]:
-                    nn_img, nn_lbl = test_ds[ni]
-                    nn_arr = np.array(nn_img)
-                    nn_b64 = pil_to_b64(Image.fromarray(nn_arr), size=100)
-                    nn_cls = int(np.array(nn_lbl).flatten()[0])
-                    nn_html += f'<div style="text-align:center;"><img src="data:image/png;base64,{nn_b64}" style="width:100px; height:100px; image-rendering:pixelated; border-radius:4px; border:1.5px solid {P["border"]};"><div style="font-size:0.62rem; color:{colors_map[nn_cls]}; font-weight:600; margin-top:3px;">{CLASSES[nn_cls]}</div></div>'
-                nn_html += '</div>'
-                st.markdown(nn_html, unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        # Recommendations (cosine similarity)
-        if 'last_image' in st.session_state:
-            st.markdown(f'<div style="text-align:center; font-size:0.78rem; font-weight:600; color:{P["rose"]}; margin:10px 0 6px 0;">Images les plus similaires (cosine similarity)</div>', unsafe_allow_html=True)
-            try:
-                recs = get_recommendations(st.session_state['last_image'], n=5)
-                if recs:
-                    recs_html = '<div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">'
-                    for rec in recs:
-                        rec_b64 = pil_to_b64(Image.fromarray(rec['image']), size=140)
-                        c = CLS_COLOR[rec['label']]
-                        cls_name = CLASSES[rec['label']]
-                        sim = rec['similarity']
-                        recs_html += f'''
-                        <div style="width:150px; text-align:center;">
-                            <img src="data:image/png;base64,{rec_b64}" style="width:140px; height:140px; image-rendering:pixelated; border-radius:4px; border:1.5px solid {P['border']}; display:block; margin:0 auto;">
-                            <div style="font-size:0.7rem; color:{c}; font-weight:600; margin-top:4px;">{cls_name}</div>
-                            <div style="font-size:0.62rem; color:{P['dim']};">sim: {sim:.1f}%</div>
-                        </div>'''
-                    recs_html += '</div>'
-                    st.markdown(recs_html, unsafe_allow_html=True)
-                else:
-                    st.caption("Embeddings non disponibles.")
-            except Exception as e:
-                st.caption(f"Recommandations non disponibles : {e}")
     else:
         st.caption("Embeddings non disponibles. Lancez NB8 pour les generer.")
 
