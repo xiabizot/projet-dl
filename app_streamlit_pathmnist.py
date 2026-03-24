@@ -247,7 +247,7 @@ def pil_to_b64(pil_img, size=80):
 # =============================================
 # HEADER — logo + titre
 # =============================================
-logo_path = Path(__file__).parent / 'IA.png'
+logo_path = Path(__file__).parent / 'assets' / 'IA.png'
 logo_html = ""
 if logo_path.exists():
     logo_b64 = base64.b64encode(logo_path.read_bytes()).decode()
@@ -289,15 +289,15 @@ with tab1:
 
     # Microbe icons mapping (9 classes)
     MICROBE_FILES = [
-        'Nouveau projet (7).png',   # adipose
-        'Nouveau projet (9).png',   # background
-        'Nouveau projet (11).png',  # debris
-        'Nouveau projet (5).png',   # lymphocytes
-        'Nouveau projet (6).png',   # mucus
-        'Nouveau projet (12).png',  # smooth muscle
-        'Nouveau projet (3).png',   # normal mucosa
-        'Nouveau projet (4).png',   # stroma
-        'Nouveau projet (2).png',   # cancer epithelium
+        'assets/Nouveau projet (7).png',   # adipose
+        'assets/Nouveau projet (9).png',   # background
+        'assets/Nouveau projet (11).png',  # debris
+        'assets/Nouveau projet (5).png',   # lymphocytes
+        'assets/Nouveau projet (6).png',   # mucus
+        'assets/Nouveau projet (12).png',  # smooth muscle
+        'assets/Nouveau projet (3).png',   # normal mucosa
+        'assets/Nouveau projet (4).png',   # stroma
+        'assets/Nouveau projet (2).png',   # cancer epithelium
     ]
 
     # Load microbe images and compose with label text below
