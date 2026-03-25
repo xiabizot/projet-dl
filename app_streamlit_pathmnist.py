@@ -421,9 +421,9 @@ with tab1:
             if any(c in pred_name.lower() for c in ['cancer', 'adenocarcinoma']):
                 st.markdown(f"""
                 <div style="text-align:center; padding:10px 16px; margin:8px auto; max-width:500px;
-                    background:#c0405018; border:2px solid #c04050; border-radius:6px;">
-                    <div style="font-size:1rem; font-weight:700; color:#c04050;">SIGNAL POSITIF — TISSU CANCEREUX DETECTE</div>
-                    <div style="font-size:0.72rem; color:#e8a0a0; margin-top:4px;">Verification par un pathologiste recommandee. Recall {pred_name} = 0.9570 (CNN v1).</div>
+                    background:#5b9bd518; border:2px solid #5b9bd5; border-radius:6px;">
+                    <div style="font-size:1rem; font-weight:700; color:#5b9bd5;">Analyse prioritaire recommandee</div>
+                    <div style="font-size:0.72rem; color:#7fafd4; margin-top:4px;">Verification par un specialiste recommandee. Recall {pred_name} = 0.9570 (CNN v1).</div>
                 </div>
                 """, unsafe_allow_html=True)
             elif any(c in pred_name.lower() for c in ['stroma', 'debris']):
@@ -438,7 +438,7 @@ with tab1:
                 st.markdown(f"""
                 <div style="text-align:center; padding:8px 16px; margin:8px auto; max-width:500px;
                     background:{P['vert']}18; border:1.5px solid {P['vert']}; border-radius:6px;">
-                    <div style="font-size:0.85rem; font-weight:600; color:{P['vert']};">SIGNAL NEGATIF — Tissu non cancereux</div>
+                    <div style="font-size:0.85rem; font-weight:600; color:{P['vert']};">Tissu non pathologique</div>
                 </div>
                 """, unsafe_allow_html=True)
 
