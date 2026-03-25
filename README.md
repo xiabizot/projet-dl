@@ -95,7 +95,7 @@ Cell.IA met en production les modeles entraines dans les notebooks sous forme d'
 **1. Classification**
 Clique sur un microbe kawaii (une image aleatoire de la classe est chargee depuis le test set), utilise l'analyse aleatoire, ou glisse ta propre image. Cell.IA classifie le tissu et affiche :
 - La classe predite avec un badge colore
-- Un signal clinique : vert (tissu sain), jaune (classe a faible recall, supervision recommandee), rouge (cancer detecte)
+- Un signal clinique : vert (tissu non pathologique), jaune (classe a faible recall, supervision recommandee), bleu (analyse prioritaire recommandee)
 - La confiance du modele (softmax)
 - L'incertitude estimee par **Monte Carlo Dropout** : 20 forward passes avec dropout active a l'inference. Si les 20 predictions convergent, le modele est stable. Si elles divergent, le modele hesite et une verification humaine est recommandee
 - Les metriques de la classe predite (precision, recall, F1-score) et les moyennes globales (accuracy, macro F1, weighted F1)
