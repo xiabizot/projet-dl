@@ -368,15 +368,20 @@ with tab1:
     params = st.query_params
     if 'cls' in params:
         target_class = int(params['cls'])
+        # Generate unique key from class + random to detect new clicks
+        import hashlib, time
+        click_key = f"{target_class}_{time.time()}"
+        last_click = st.session_state.get('_last_tile_click', '')
         if 0 <= target_class < N_CLASSES:
             indices_for_class = cls_indices[target_class]
             rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
             img, lbl = test_ds[rand_idx]
             st.session_state['selected_image'] = np.array(img)
             st.session_state['true_label'] = target_class
+            st.session_state['_last_tile_click'] = click_key
             new_image = True
-            # Clear param to allow re-click on same class
-            st.query_params.clear()
+        # Remove cls param without full clear
+        del st.query_params['cls']
 
     # Or: random / upload
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
