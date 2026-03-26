@@ -342,27 +342,41 @@ with tab1:
                 b64 = pil_to_b64(Image.fromarray(img_arr.astype(np.uint8)), size=80)
                 microbe_b64.append(f"data:image/png;base64,{b64}")
 
-    # Microbe grid (3x3) with images + buttons
+    # Microbe grid (3x3) — HTML clickable tiles
     new_image = False
     cls_indices = get_class_indices(test_ds)
 
     SHORT_NAMES = ['adipose', 'background', 'debris', 'lymphocytes', 'mucus',
                    'smooth muscle', 'mucosa', 'stroma', 'cancer']
 
-    for row in range(3):
-        cols = st.columns([1, 1, 1])
-        for col_idx in range(3):
-            class_idx = row * 3 + col_idx
-            if class_idx < N_CLASSES:
-                with cols[col_idx]:
-                    if class_idx < len(microbe_b64):
-                        st.markdown(f'<div style="text-align:center; margin-bottom:-10px;"><img src="{microbe_b64[class_idx]}" style="width:110px; height:110px;"></div>', unsafe_allow_html=True)
-                    if st.button(SHORT_NAMES[class_idx], key=f"cls_{class_idx}", use_container_width=True):
-                        rand_idx = cls_indices[class_idx][np.random.randint(0, len(cls_indices[class_idx]))]
-                        img, lbl = test_ds[rand_idx]
-                        st.session_state['selected_image'] = np.array(img)
-                        st.session_state['true_label'] = class_idx
-                        new_image = True
+    # Build HTML grid with clickable images
+    tiles_html = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:480px; margin:0 auto;">'
+    for i in range(N_CLASSES):
+        if i < len(microbe_b64):
+            tiles_html += f'''
+            <a href="?cls={i}" target="_self" style="text-decoration:none;">
+                <div style="width:140px; text-align:center; cursor:pointer; border:2px solid {P['border']}; border-radius:6px; padding:6px; background:{P['card']}; transition:border-color 0.2s;"
+                     onmouseover="this.style.borderColor='{P['rose']}'" onmouseout="this.style.borderColor='{P['border']}'">
+                    <img src="{microbe_b64[i]}" style="width:100px; height:100px; display:block; margin:0 auto;">
+                    <div style="font-size:0.68rem; color:{P['text']}; font-weight:500; margin-top:4px;">{SHORT_NAMES[i]}</div>
+                </div>
+            </a>'''
+    tiles_html += '</div>'
+    st.markdown(tiles_html, unsafe_allow_html=True)
+
+    # Capture click via query params
+    params = st.query_params
+    if 'cls' in params:
+        target_class = int(params['cls'])
+        if 0 <= target_class < N_CLASSES:
+            indices_for_class = cls_indices[target_class]
+            rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
+            img, lbl = test_ds[rand_idx]
+            st.session_state['selected_image'] = np.array(img)
+            st.session_state['true_label'] = target_class
+            new_image = True
+            # Clear param to allow re-click on same class
+            st.query_params.clear()
 
     # Or: random / upload
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
