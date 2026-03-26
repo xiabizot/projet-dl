@@ -193,15 +193,19 @@ def mc_dropout_predict(model, tensor, n_forward=20):
     """
     Monte Carlo Dropout: run n_forward passes with dropout enabled.
     Returns array of shape (n_forward, n_classes) with probability distributions.
+    Saves and restores BatchNorm running stats to avoid corruption.
     """
-    model.train()  # Enable dropout
+    import copy
+    saved_state = copy.deepcopy(model.state_dict())
+    model.train()  # Enable dropout (but also activates BatchNorm update)
     mc_probas = []
     with torch.no_grad():
         for _ in range(n_forward):
             logits = model(tensor)
             probas = F.softmax(logits, dim=1).cpu().numpy()[0]
             mc_probas.append(probas)
-    model.eval()  # Back to eval mode
+    model.load_state_dict(saved_state)  # Restore exact original weights + BN stats
+    model.eval()
     return np.array(mc_probas)
 
 
