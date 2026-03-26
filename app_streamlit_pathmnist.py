@@ -363,7 +363,7 @@ with tab1:
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns([1, 2, 2, 1])
     with c2:
-        random_clicked = st.button("Analyse aleatoire", use_container_width=True)
+        random_clicked = st.button("Image aleatoire", use_container_width=True)
     with c3:
         uploaded = st.file_uploader("Glisse ton image ici", type=['png','jpg','jpeg'])
     if uploaded:
@@ -551,7 +551,7 @@ with tab1:
                         except Exception as e:
                             st.session_state['last_explanation'] = f"Erreur : {e}"
             with c3:
-                if st.button("Cell.IA version junior", use_container_width=True):
+                if st.button("Cell.IA Junior explique", use_container_width=True):
                     with st.spinner("Cell.IA explique simplement..."):
                         try:
                             kid_prompt = (
@@ -694,7 +694,7 @@ with tab2:
                     except Exception as e:
                         st.session_state['gc_explanation'] = f"Erreur : {e}"
         with c3:
-            if st.button("Cell.IA version junior (Grad-CAM)", use_container_width=True):
+            if st.button("Cell.IA Junior explique (Grad-CAM)", use_container_width=True):
                 with st.spinner("Cell.IA explique simplement..."):
                     try:
                         kid_prompt = (

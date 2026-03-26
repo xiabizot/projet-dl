@@ -100,7 +100,7 @@ Clique sur un microbe kawaii (une image aleatoire de la classe est chargee depui
 - L'incertitude estimee par **Monte Carlo Dropout** : 20 forward passes avec dropout active a l'inference. Si les 20 predictions convergent, le modele est stable. Si elles divergent, le modele hesite et une verification humaine est recommandee
 - Les metriques de la classe predite (precision, recall, F1-score) et les moyennes globales (accuracy, macro F1, weighted F1)
 - La distribution des probabilites sur les 9 classes
-- Deux boutons d'explication par agent IA : "Cell.IA explique" (technique, pour le pathologiste) et "Cell.IA version junior" (accessible, pour les adolescents)
+- Deux boutons d'explication par agent IA : "Cell.IA explique" (technique, pour le pathologiste) et "Cell.IA Junior explique" (accessible, pour les adolescents)
 
 **2. Grad-CAM**
 De la **black-box** a la **glass-box**. Le Grad-CAM montre ou chaque modele regarde pour prendre sa decision :
