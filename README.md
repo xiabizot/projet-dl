@@ -50,13 +50,15 @@ Le dataset est telecharge automatiquement a l'execution des notebooks.
 
 1. **Le CNN from scratch (91.78%) egale le ResNet fine-tuning (91.77%) avec 25 fois moins de parametres.** La cle est l'augmentation ColorJitter, qui simule les variations de coloration H&E entre hopitaux et adresse directement le domain shift.
 
-2. **L'accuracy seule est trompeuse pour le deploiement clinique.** Le ResNet FT domine sur la detection du cancer (F1 = 0.9632 vs 0.9414 pour le CNN, precision 0.9605 vs 0.9262). En oncologie, manquer un cancer (faux negatif) est bien plus grave qu'une fausse alerte.
+2. **Le ResNet n'est pas pousse a son maximum.** Ses 11.1M de parametres viennent d'ImageNet (photos naturelles, pas d'histologie), et le fine-tuning n'adapte que partiellement ces millions de poids aux tissus medicaux. Le resize de 28x28 a 224x224 introduit en plus un flou qui degrade l'information. Ses 11.1M de parametres sont aussi une limite pour le deploiement embarque (systemes legers en laboratoire). Malgre ces contraintes, il domine sur la detection du cancer (recall 0.9659, F1 0.9632, precision 0.9605). Avec un pretraining specialise en pathologie (Virchow, UNI), ces parametres seraient entraines sur des lames histologiques des le depart — les resultats seraient probablement superieurs, et les techniques de distillation pourraient reduire la taille du modele pour l'embarque.
 
-3. **Le stroma est universellement difficile** (recall 0.39-0.53 pour tous les modeles). C'est une limite physique de la resolution 28x28 — les textures des tissus conjonctifs sont indistinguables a cette echelle.
+3. **L'accuracy seule est trompeuse pour le deploiement clinique.** En oncologie, manquer un cancer (faux negatif) est bien plus grave qu'une fausse alerte. Le recall par classe et le F1-score sont les metriques de decision, pas l'accuracy globale.
 
-4. **Le ViT sans positional embeddings surpasse le ViT avec** (83.40% vs 81.98%). En histologie, l'identite du tissu est dans la texture, pas dans la localisation — un resultat qui contraste avec le NLP ou la position est essentielle.
+4. **Le stroma est universellement difficile** (recall 0.39-0.53 pour tous les modeles). C'est une limite physique de la resolution 28x28 — les textures des tissus conjonctifs sont indistinguables a cette echelle.
 
-5. **Le CNN et le ResNet utilisent des strategies visuelles complementaires** (analyse Grad-CAM). Un ensemble des deux pourrait potentiellement surpasser chacun individuellement.
+5. **Le ViT sans positional embeddings surpasse le ViT avec** (83.40% vs 81.98%). En histologie, l'identite du tissu est dans la texture, pas dans la localisation — un resultat qui contraste avec le NLP ou la position est essentielle.
+
+6. **Le CNN et le ResNet utilisent des strategies visuelles complementaires** (analyse Grad-CAM). Un ensemble des deux pourrait potentiellement surpasser chacun individuellement.
 
 ## Prerequis
 
