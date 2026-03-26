@@ -343,11 +343,17 @@ with tab1:
                 microbe_b64.append(f"data:image/png;base64,{b64}")
 
     # Clickable microbe grid
+    if 'microbe_click_count' not in st.session_state:
+        st.session_state['microbe_click_count'] = 0
+    if 'last_clicked_idx' not in st.session_state:
+        st.session_state['last_clicked_idx'] = -1
+
     clicked = clickable_images(
         microbe_b64,
         titles=CLASSES,
         div_style={"display": "flex", "flex-wrap": "wrap", "justify-content": "center", "gap": "6px", "max-width": "500px", "margin": "0 auto"},
         img_style={"width": "135px", "height": "135px", "border-radius": "6px", "cursor": "pointer", "border": f"2px solid {P['border']}", "background": P['card'], "padding": "4px", "transition": "border-color 0.2s"},
+        key=f"microbes_{st.session_state['microbe_click_count']}",
     )
 
     new_image = False
@@ -355,18 +361,11 @@ with tab1:
 
     if clicked is not None and clicked > -1 and clicked < N_CLASSES:
         target_class = clicked
+        st.session_state['microbe_click_count'] += 1
+        st.session_state['last_clicked_idx'] = clicked
         indices_for_class = cls_indices[target_class]
         rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
         img, lbl = test_ds[rand_idx]
-        # Double check label
-        actual = int(np.array(lbl).flatten()[0])
-        if actual != target_class:
-            # If mismatch, brute force search
-            for idx in indices_for_class:
-                img2, lbl2 = test_ds[idx]
-                if int(np.array(lbl2).flatten()[0]) == target_class:
-                    img, lbl = img2, lbl2
-                    break
         st.session_state['selected_image'] = np.array(img)
         st.session_state['true_label'] = target_class
         new_image = True
