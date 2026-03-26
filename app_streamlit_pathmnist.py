@@ -366,6 +366,8 @@ with tab1:
         indices_for_class = cls_indices[clicked_class]
         rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
         img, lbl = test_ds[rand_idx]
+        actual_label = int(np.array(lbl).flatten()[0])
+        st.caption(f"DEBUG: clicked_class={clicked_class} ({CLASSES[clicked_class]}), rand_idx={rand_idx}, actual_label={actual_label} ({CLASSES[actual_label]})")
         st.session_state['selected_image'] = np.array(img)
         st.session_state['true_label'] = clicked_class
         new_image = True
