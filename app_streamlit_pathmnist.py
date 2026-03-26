@@ -348,32 +348,24 @@ with tab1:
                 placeholder.save(buf, format='PNG')
                 microbe_b64.append(f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}")
 
-    # Microbe grid (3x3) — st.button with kawaii image
+    # Clickable microbe grid
+    clicked = clickable_images(
+        microbe_b64,
+        titles=CLASSES,
+        div_style={"display": "flex", "flex-wrap": "wrap", "justify-content": "center", "gap": "6px", "max-width": "500px", "margin": "0 auto"},
+        img_style={"width": "135px", "height": "135px", "border-radius": "6px", "cursor": "pointer", "border": f"2px solid {P['border']}", "background": P['card'], "padding": "4px", "transition": "border-color 0.2s"},
+    )
+
     new_image = False
     cls_indices = get_class_indices(test_ds)
 
-    SHORT_NAMES = ['adipose', 'background', 'debris', 'lymphocytes', 'mucus',
-                   'smooth muscle', 'mucosa', 'stroma', 'cancer']
-
-    # Detect which button was clicked
-    clicked_class = None
-    for row in range(3):
-        cols = st.columns(3)
-        for col_idx in range(3):
-            class_idx = row * 3 + col_idx
-            if class_idx < N_CLASSES and class_idx < len(microbe_b64):
-                with cols[col_idx]:
-                    st.markdown(f'<div style="text-align:center;"><img src="{microbe_b64[class_idx]}" style="width:105px; height:105px;"></div>', unsafe_allow_html=True)
-                    if st.button(SHORT_NAMES[class_idx], key=f"cls_{class_idx}", use_container_width=True):
-                        clicked_class = class_idx
-
-    # Process click only once, after all buttons rendered
-    if clicked_class is not None:
-        indices_for_class = cls_indices[clicked_class]
+    if clicked is not None and clicked > -1 and clicked < N_CLASSES:
+        target_class = clicked
+        indices_for_class = cls_indices[target_class]
         rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
         img, lbl = test_ds[rand_idx]
         st.session_state['selected_image'] = np.array(img)
-        st.session_state['true_label'] = clicked_class
+        st.session_state['true_label'] = target_class
         new_image = True
 
     # Or: upload
