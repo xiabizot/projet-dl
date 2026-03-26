@@ -349,6 +349,8 @@ with tab1:
     SHORT_NAMES = ['adipose', 'background', 'debris', 'lymphocytes', 'mucus',
                    'smooth muscle', 'mucosa', 'stroma', 'cancer']
 
+    # Detect which button was clicked
+    clicked_class = None
     for row in range(3):
         cols = st.columns(3)
         for col_idx in range(3):
@@ -357,12 +359,16 @@ with tab1:
                 with cols[col_idx]:
                     st.markdown(f'<div style="text-align:center;"><img src="{microbe_b64[class_idx]}" style="width:105px; height:105px;"></div>', unsafe_allow_html=True)
                     if st.button(SHORT_NAMES[class_idx], key=f"cls_{class_idx}", use_container_width=True):
-                        indices_for_class = cls_indices[class_idx]
-                        rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
-                        img, lbl = test_ds[rand_idx]
-                        st.session_state['selected_image'] = np.array(img)
-                        st.session_state['true_label'] = class_idx
-                        new_image = True
+                        clicked_class = class_idx
+
+    # Process click only once, after all buttons rendered
+    if clicked_class is not None:
+        indices_for_class = cls_indices[clicked_class]
+        rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
+        img, lbl = test_ds[rand_idx]
+        st.session_state['selected_image'] = np.array(img)
+        st.session_state['true_label'] = clicked_class
+        new_image = True
 
     # Or: upload
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
