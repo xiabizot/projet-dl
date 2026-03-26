@@ -347,15 +347,14 @@ with tab1:
     cls_indices = get_class_indices(test_ds)
 
     for row in range(3):
-        cols = st.columns(3)
-        for col_idx in range(3):
+        _, c1, c2, c3, _ = st.columns([0.5, 1, 1, 1, 0.5])
+        for col_idx, col in enumerate([c1, c2, c3]):
             class_idx = row * 3 + col_idx
             if class_idx < N_CLASSES:
-                with cols[col_idx]:
-                    # Display microbe image
+                with col:
                     if class_idx < len(microbe_b64):
-                        st.markdown(f'<div style="text-align:center;"><img src="{microbe_b64[class_idx]}" style="width:120px; height:120px;"></div>', unsafe_allow_html=True)
-                    if st.button(FULL_NAMES[class_idx].replace('\n', ' '), key=f"cls_{class_idx}", use_container_width=True):
+                        st.markdown(f'<div style="text-align:center;"><img src="{microbe_b64[class_idx]}" style="width:100px; height:100px;"></div>', unsafe_allow_html=True)
+                    if st.button(FULL_NAMES[class_idx].replace('\n', ' '), key=f"cls_{class_idx}"):
                         rand_idx = cls_indices[class_idx][np.random.randint(0, len(cls_indices[class_idx]))]
                         img, lbl = test_ds[rand_idx]
                         st.session_state['selected_image'] = np.array(img)
