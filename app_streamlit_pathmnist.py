@@ -694,7 +694,7 @@ with tab2:
                     except Exception as e:
                         st.session_state['gc_explanation'] = f"Erreur : {e}"
         with c3:
-            if st.button("Cell.IA Junior explique (Grad-CAM)", use_container_width=True):
+            if st.button("Cell.IA Junior explique le Grad-CAM", use_container_width=True):
                 with st.spinner("Cell.IA explique simplement..."):
                     try:
                         kid_prompt = (
@@ -877,7 +877,7 @@ with tab5:
 
         colors_map = ['#c0a850', '#5a9ec0', '#8a70b8', '#5aaa78', '#c89060', '#d4688a', '#4a90b8', '#9070c8', '#c04050']
 
-        # Main t-SNE plot
+        # Main t-SNE plot with star highlight
         fig, ax = plt.subplots(figsize=(10, 8))
         fig.patch.set_facecolor('#ffffff')
         ax.set_facecolor('#f8f9fc')
@@ -885,6 +885,41 @@ with tab5:
             mask = labels_tsne == c
             ax.scatter(coords[mask, 0], coords[mask, 1], s=6, alpha=0.5,
                       c=colors_map[c], label=CLASSES[c])
+        # Highlight analyzed image on t-SNE
+        if 'last_image' in st.session_state and 'last_result' in st.session_state:
+            try:
+                from agent_pathmnist import load_models
+                import torch
+                models_loaded = load_models()
+                cnn_t = models_loaded.get('cnn')
+                if cnn_t:
+                    img_arr_t = st.session_state['last_image']
+                    img_t_t = torch.tensor(img_arr_t.transpose(2, 0, 1).astype(np.float32) / 255.0).unsqueeze(0)
+                    norm_mean_t = torch.tensor(NORM_MEAN).view(1, 3, 1, 1)
+                    norm_std_t = torch.tensor(NORM_STD).view(1, 3, 1, 1)
+                    img_t_t = (img_t_t - norm_mean_t) / norm_std_t
+                    device_t = next(cnn_t.parameters()).device
+                    cnn_t.eval()
+                    with torch.no_grad():
+                        x_t = img_t_t.to(device_t)
+                        for layer in list(cnn_t.children())[:-1]:
+                            x_t = layer(x_t)
+                        if x_t.dim() > 2:
+                            x_t = x_t.view(x_t.size(0), -1)
+                        emb_q_t = x_t.cpu().numpy().flatten()
+                    from sklearn.neighbors import NearestNeighbors
+                    nn_t = NearestNeighbors(n_neighbors=5)
+                    nn_t.fit(embeddings)
+                    _, idxs_t = nn_t.kneighbors(emb_q_t.reshape(1, -1))
+                    pos_x_t = coords[idxs_t[0], 0].mean()
+                    pos_y_t = coords[idxs_t[0], 1].mean()
+                    pred_name_t = CLASSES[st.session_state['last_result']['pred_idx']]
+                    ax.scatter([pos_x_t], [pos_y_t], s=200, c='red', marker='*', zorder=10, edgecolors='black', linewidths=1)
+                    ax.annotate(f'{pred_name_t}', (pos_x_t, pos_y_t), textcoords="offset points",
+                               xytext=(12, 12), fontsize=9, color='red', fontweight='bold',
+                               arrowprops=dict(arrowstyle='->', color='red'))
+            except Exception:
+                pass
         ax.legend(fontsize=8, loc='best', framealpha=0.8, markerscale=3)
         ax.set_xticks([]); ax.set_yticks([])
         ax.set_title('t-SNE CNN v1 embeddings (128D → 2D)', fontsize=11, color='#1a1a2e')
@@ -930,6 +965,41 @@ with tab5:
                 mask = labels_tsne == c
                 ax_u.scatter(umap_coords[mask, 0], umap_coords[mask, 1], s=6, alpha=0.5,
                           c=colors_map[c], label=CLASSES[c])
+            # Highlight analyzed image on UMAP
+            if 'last_image' in st.session_state and 'last_result' in st.session_state and embeddings is not None:
+                try:
+                    from agent_pathmnist import load_models
+                    import torch
+                    models_loaded = load_models()
+                    cnn_u = models_loaded.get('cnn')
+                    if cnn_u:
+                        img_arr_u = st.session_state['last_image']
+                        img_t_u = torch.tensor(img_arr_u.transpose(2, 0, 1).astype(np.float32) / 255.0).unsqueeze(0)
+                        norm_mean_u = torch.tensor(NORM_MEAN).view(1, 3, 1, 1)
+                        norm_std_u = torch.tensor(NORM_STD).view(1, 3, 1, 1)
+                        img_t_u = (img_t_u - norm_mean_u) / norm_std_u
+                        device_u = next(cnn_u.parameters()).device
+                        cnn_u.eval()
+                        with torch.no_grad():
+                            x_u = img_t_u.to(device_u)
+                            for layer in list(cnn_u.children())[:-1]:
+                                x_u = layer(x_u)
+                            if x_u.dim() > 2:
+                                x_u = x_u.view(x_u.size(0), -1)
+                            emb_q_u = x_u.cpu().numpy().flatten()
+                        from sklearn.neighbors import NearestNeighbors
+                        nn_u = NearestNeighbors(n_neighbors=5)
+                        nn_u.fit(embeddings)
+                        _, idxs_u = nn_u.kneighbors(emb_q_u.reshape(1, -1))
+                        pos_x_u = umap_coords[idxs_u[0], 0].mean()
+                        pos_y_u = umap_coords[idxs_u[0], 1].mean()
+                        pred_name_u = CLASSES[st.session_state['last_result']['pred_idx']]
+                        ax_u.scatter([pos_x_u], [pos_y_u], s=200, c='red', marker='*', zorder=10, edgecolors='black', linewidths=1)
+                        ax_u.annotate(f'{pred_name_u}', (pos_x_u, pos_y_u), textcoords="offset points",
+                                   xytext=(12, 12), fontsize=9, color='red', fontweight='bold',
+                                   arrowprops=dict(arrowstyle='->', color='red'))
+                except Exception:
+                    pass
             ax_u.legend(fontsize=8, loc='best', framealpha=0.8, markerscale=3)
             ax_u.set_xticks([]); ax_u.set_yticks([])
             ax_u.set_title('UMAP CNN v1 embeddings (128D → 2D)', fontsize=11, color='#1a1a2e')
@@ -940,68 +1010,6 @@ with tab5:
             plt.close()
         else:
             st.caption("UMAP non disponible (pip install umap-learn)")
-
-        st.markdown("---")
-
-        # Highlight last analyzed image on t-SNE
-        if 'last_image' in st.session_state and 'last_result' in st.session_state:
-            result = st.session_state['last_result']
-            pred_cls = result['pred_idx']
-            pred_name = CLASSES[pred_cls]
-
-            st.markdown(f'<div style="text-align:center; font-size:0.78rem; font-weight:600; color:{P["rose"]}; margin:10px 0 6px 0;">Position de l\'image analysee dans l\'espace des embeddings</div>', unsafe_allow_html=True)
-
-            # Get embedding of analyzed image
-            from agent_pathmnist import load_models
-            import torch
-            models_loaded = load_models()
-            cnn = models_loaded.get('cnn')
-            if cnn:
-                img_arr = st.session_state['last_image']
-                img_t = torch.tensor(img_arr.transpose(2, 0, 1).astype(np.float32) / 255.0).unsqueeze(0)
-                norm_mean = torch.tensor(NORM_MEAN).view(1, 3, 1, 1)
-                norm_std = torch.tensor(NORM_STD).view(1, 3, 1, 1)
-                img_t = (img_t - norm_mean) / norm_std
-                device = next(cnn.parameters()).device
-                cnn.eval()
-                with torch.no_grad():
-                    # Get embedding from penultimate layer
-                    x = img_t.to(device)
-                    for layer in list(cnn.children())[:-1]:
-                        x = layer(x)
-                    if x.dim() > 2:
-                        x = x.view(x.size(0), -1)
-                    emb_query = x.cpu().numpy().flatten()
-
-                # Project onto existing t-SNE using nearest neighbor position
-                from sklearn.neighbors import NearestNeighbors
-                nn = NearestNeighbors(n_neighbors=5)
-                nn.fit(embeddings)
-                dists, idxs = nn.kneighbors(emb_query.reshape(1, -1))
-                # Average position of 5 nearest neighbors
-                pos_x = coords[idxs[0], 0].mean()
-                pos_y = coords[idxs[0], 1].mean()
-
-                fig2, ax2 = plt.subplots(figsize=(10, 8))
-                fig2.patch.set_facecolor('#ffffff')
-                ax2.set_facecolor('#f8f9fc')
-                for c in range(N_CLASSES):
-                    mask = labels_tsne == c
-                    ax2.scatter(coords[mask, 0], coords[mask, 1], s=4, alpha=0.3,
-                              c=colors_map[c], label=CLASSES[c])
-                # Highlight analyzed image
-                ax2.scatter([pos_x], [pos_y], s=200, c='red', marker='*', zorder=10, edgecolors='black', linewidths=1)
-                ax2.annotate(f'{pred_name}', (pos_x, pos_y), textcoords="offset points",
-                           xytext=(12, 12), fontsize=9, color='red', fontweight='bold',
-                           arrowprops=dict(arrowstyle='->', color='red'))
-                ax2.legend(fontsize=7, loc='best', framealpha=0.8, markerscale=3)
-                ax2.set_xticks([]); ax2.set_yticks([])
-                ax2.set_title('Position de l\'image analysee (etoile rouge)', fontsize=10, color='#1a1a2e')
-                for spine in ax2.spines.values():
-                    spine.set_color('#e0e4ec')
-                plt.tight_layout()
-                st.pyplot(fig2)
-                plt.close()
 
     else:
         st.caption("Embeddings non disponibles. Lancez NB8 pour les generer.")
