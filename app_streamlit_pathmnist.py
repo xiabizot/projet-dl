@@ -341,7 +341,14 @@ with tab1:
             if img_arr is not None:
                 b64 = pil_to_b64(Image.fromarray(img_arr.astype(np.uint8)), size=80)
                 microbe_b64.append(f"data:image/png;base64,{b64}")
+            else:
+                # Placeholder: empty transparent image to keep indices aligned
+                placeholder = Image.new('RGBA', (80, 80), (200, 200, 200, 100))
+                buf = io.BytesIO()
+                placeholder.save(buf, format='PNG')
+                microbe_b64.append(f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}")
 
+    st.caption(f"DEBUG microbe_b64: {len(microbe_b64)} images, N_CLASSES: {N_CLASSES}")
     # Microbe grid (3x3) — st.button with kawaii image
     new_image = False
     cls_indices = get_class_indices(test_ds)
