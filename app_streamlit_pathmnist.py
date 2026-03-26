@@ -342,33 +342,27 @@ with tab1:
                 b64 = pil_to_b64(Image.fromarray(img_arr.astype(np.uint8)), size=80)
                 microbe_b64.append(f"data:image/png;base64,{b64}")
 
-    # Clickable microbe grid
-    if 'microbe_click_count' not in st.session_state:
-        st.session_state['microbe_click_count'] = 0
-    if 'last_clicked_idx' not in st.session_state:
-        st.session_state['last_clicked_idx'] = -1
-
-    clicked = clickable_images(
-        microbe_b64,
-        titles=CLASSES,
-        div_style={"display": "flex", "flex-wrap": "wrap", "justify-content": "center", "gap": "6px", "max-width": "500px", "margin": "0 auto"},
-        img_style={"width": "135px", "height": "135px", "border-radius": "6px", "cursor": "pointer", "border": f"2px solid {P['border']}", "background": P['card'], "padding": "4px", "transition": "border-color 0.2s"},
-        key=f"microbes_{st.session_state['microbe_click_count']}",
-    )
-
+    # Microbe grid (3x3) with images + buttons
     new_image = False
     cls_indices = get_class_indices(test_ds)
 
-    if clicked is not None and clicked > -1 and clicked < N_CLASSES:
-        target_class = clicked
-        st.session_state['microbe_click_count'] += 1
-        st.session_state['last_clicked_idx'] = clicked
-        indices_for_class = cls_indices[target_class]
-        rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
-        img, lbl = test_ds[rand_idx]
-        st.session_state['selected_image'] = np.array(img)
-        st.session_state['true_label'] = target_class
-        new_image = True
+    SHORT_NAMES = ['adipose', 'background', 'debris', 'lymphocytes', 'mucus',
+                   'smooth muscle', 'mucosa', 'stroma', 'cancer']
+
+    for row in range(3):
+        cols = st.columns([1, 1, 1])
+        for col_idx in range(3):
+            class_idx = row * 3 + col_idx
+            if class_idx < N_CLASSES:
+                with cols[col_idx]:
+                    if class_idx < len(microbe_b64):
+                        st.markdown(f'<div style="text-align:center; margin-bottom:-10px;"><img src="{microbe_b64[class_idx]}" style="width:110px; height:110px;"></div>', unsafe_allow_html=True)
+                    if st.button(SHORT_NAMES[class_idx], key=f"cls_{class_idx}", use_container_width=True):
+                        rand_idx = cls_indices[class_idx][np.random.randint(0, len(cls_indices[class_idx]))]
+                        img, lbl = test_ds[rand_idx]
+                        st.session_state['selected_image'] = np.array(img)
+                        st.session_state['true_label'] = class_idx
+                        new_image = True
 
     # Or: random / upload
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
