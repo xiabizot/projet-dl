@@ -30,6 +30,7 @@ def download_models_if_needed():
         models_dir / 'NB3_cnn_preds.pkl': None,
         models_dir / 'NB3_cnn_preds_no_aug.pkl': None,
         models_dir / 'resnet_preds.pkl': None,
+        models_dir / 'resnet_frozen_preds.pkl': None,
         models_dir / 'vit_no_pos_preds.pkl': None,
         emb_dir / 'cnn_test_embeddings.npy': None,
         emb_dir / 'cnn_test_images.npy': None,
@@ -229,7 +230,7 @@ def get_metrics():
     import pickle
     from sklearn.metrics import classification_report
     out = {}
-    for name, fname in [('CNN sans aug', 'NB3_cnn_preds_no_aug.pkl'), ('CNN v1', 'NB3_cnn_preds.pkl'), ('ResNet FT', 'resnet_preds.pkl'), ('ViT sans pos', 'vit_no_pos_preds.pkl')]:
+    for name, fname in [('CNN sans aug', 'NB3_cnn_preds_no_aug.pkl'), ('CNN v1', 'NB3_cnn_preds.pkl'), ('ResNet frozen', 'resnet_frozen_preds.pkl'), ('ResNet FT', 'resnet_preds.pkl'), ('ViT sans pos', 'vit_no_pos_preds.pkl')]:
         fpath = Path(DATA_DIR) / 'models' / fname
         if fpath.exists():
             with open(fpath, 'rb') as f:
@@ -743,9 +744,9 @@ with tab4:
     df_summary = pd.DataFrame({
         'Modele': ['MLP', 'CNN sans aug', 'CNN v1', 'ResNet frozen', 'ResNet FT', 'ViT', 'ViT sans pos'],
         'Test acc': ['68.02%', '88.86%', '91.78%', '87.14%', '91.77%', '81.98%', '83.40%'],
-        'Precision cancer': ['0.5995', '0.9113', '0.9262', '—', '0.9605', '0.8122', '0.8763'],
-        'Recall cancer': ['0.7745', '0.9578', '0.9570', '—', '0.9659', '0.8873', '0.8905'],
-        'F1 cancer': ['0.6759', '0.9340', '0.9414', '—', '0.9632', '0.8481', '0.8833'],
+        'Precision cancer': ['0.5995', '0.9113', '0.9262', '0.8647', '0.9605', '0.8122', '0.8763'],
+        'Recall cancer': ['0.7745', '0.9578', '0.9570', '0.9067', '0.9659', '0.8873', '0.8905'],
+        'F1 cancer': ['0.6759', '0.9340', '0.9414', '0.8852', '0.9632', '0.8481', '0.8833'],
         'Params': ['1.37M', '436K', '436K', '4.6K', '11.1M', '816K', '816K'],
         'vs best': [f"{a - best_acc:+.2f}" for a in accs],
     })
