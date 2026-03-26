@@ -342,24 +342,34 @@ with tab1:
                 b64 = pil_to_b64(Image.fromarray(img_arr.astype(np.uint8)), size=80)
                 microbe_b64.append(f"data:image/png;base64,{b64}")
 
-    # Microbe grid with st.button (3x3)
+    # Clickable microbe grid
+    clicked = clickable_images(
+        microbe_b64,
+        titles=CLASSES,
+        div_style={"display": "flex", "flex-wrap": "wrap", "justify-content": "center", "gap": "6px", "max-width": "500px", "margin": "0 auto"},
+        img_style={"width": "135px", "height": "135px", "border-radius": "6px", "cursor": "pointer", "border": f"2px solid {P['border']}", "background": P['card'], "padding": "4px", "transition": "border-color 0.2s"},
+    )
+
     new_image = False
     cls_indices = get_class_indices(test_ds)
 
-    for row in range(3):
-        _, c1, c2, c3, _ = st.columns([0.5, 1, 1, 1, 0.5])
-        for col_idx, col in enumerate([c1, c2, c3]):
-            class_idx = row * 3 + col_idx
-            if class_idx < N_CLASSES:
-                with col:
-                    if class_idx < len(microbe_b64):
-                        st.markdown(f'<div style="text-align:center;"><img src="{microbe_b64[class_idx]}" style="width:100px; height:100px;"></div>', unsafe_allow_html=True)
-                    if st.button(FULL_NAMES[class_idx].replace('\n', ' '), key=f"cls_{class_idx}"):
-                        rand_idx = cls_indices[class_idx][np.random.randint(0, len(cls_indices[class_idx]))]
-                        img, lbl = test_ds[rand_idx]
-                        st.session_state['selected_image'] = np.array(img)
-                        st.session_state['true_label'] = class_idx
-                        new_image = True
+    if clicked is not None and clicked > -1 and clicked < N_CLASSES:
+        target_class = clicked
+        indices_for_class = cls_indices[target_class]
+        rand_idx = indices_for_class[np.random.randint(0, len(indices_for_class))]
+        img, lbl = test_ds[rand_idx]
+        # Double check label
+        actual = int(np.array(lbl).flatten()[0])
+        if actual != target_class:
+            # If mismatch, brute force search
+            for idx in indices_for_class:
+                img2, lbl2 = test_ds[idx]
+                if int(np.array(lbl2).flatten()[0]) == target_class:
+                    img, lbl = img2, lbl2
+                    break
+        st.session_state['selected_image'] = np.array(img)
+        st.session_state['true_label'] = target_class
+        new_image = True
 
     # Or: random / upload
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
