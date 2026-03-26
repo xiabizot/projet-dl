@@ -383,12 +383,10 @@ with tab1:
         # Remove cls param without full clear
         del st.query_params['cls']
 
-    # Or: random / upload
+    # Or: upload
     st.markdown(f'<div style="text-align:center; font-size:0.68rem; color:{P["dim"]}; margin:10px 0 4px 0;">ou</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns([1, 2, 2, 1])
-    with c2:
-        random_clicked = st.button("Image aleatoire", use_container_width=True)
-    with c3:
+    _, c_upload, _ = st.columns([1, 2, 1])
+    with c_upload:
         uploaded = st.file_uploader("Glisse ton image ici", type=['png','jpg','jpeg'])
     if uploaded:
         upload_id = uploaded.name + str(uploaded.size)
@@ -398,12 +396,6 @@ with tab1:
             st.session_state['selected_image'] = np.array(img)
             st.session_state['true_label'] = -1
             new_image = True
-    if random_clicked:
-        idx = np.random.randint(0, len(test_ds))
-        img, lbl = test_ds[idx]
-        st.session_state['selected_image'] = np.array(img)
-        st.session_state['true_label'] = int(np.array(lbl).flatten()[0])
-        new_image = True
 
     # Auto-analyse on new image selection
     if new_image and 'selected_image' in st.session_state:
