@@ -475,10 +475,10 @@ with tab1:
             uncertainty = result.get('uncertainty', None)
             if uncertainty is not None:
                 unc_pct = uncertainty * 100
-                if unc_pct < 3:
+                if unc_pct < 9:
                     unc_color = P['vert']
                     unc_label = "Prediction stable"
-                elif unc_pct < 8:
+                elif unc_pct < 12:
                     unc_color = P['jaune']
                     unc_label = "Legere hesitation"
                 else:
